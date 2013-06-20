@@ -4,6 +4,7 @@ from cStringIO import StringIO
 from collections import OrderedDict
 from google.appengine.ext import db
 from mapreduce import context
+from mapreduce.util import handler_for_name
 
 def datastore_map(record):
   """
@@ -30,13 +31,63 @@ def _get_mapped_properties(property_map, record):
   so column structure is maintained.
   """
   for p in property_map:
-    if (hasattr(record, p["property_match_name"]) and 
-        getattr(record, p["property_match_name"]) == p["property_match_value"]):
+    attr = _get_attribute_value(record, p["property_match_name"])
+    if (attr == p["property_match_value"]):
       obj = []
       for k in p["property_list"]:
-        obj.append((k,getattr(record,k)) if hasattr(record, k) else None)
+        """ 
+        property list can either have attribute names or tuples defining an attribute
+        that will be created by a class/function/method qualified names
+
+        Attribute names are defined as strings, qualified names should be tuples,
+        first item defines the attribute to which it will be mapped, the second
+        should define a qualified name such some_python_module.funcname
+        """
+        if isinstance(k, basestring):
+          obj.append((k, _get_attribute_value(record, k)))
+        else:
+          p_key, qualified_name, args = k
+          obj.append((p_key, _evaluate_name(record, qualified_name, args)))
+
       return OrderedDict(obj)
+
+def _get_attribute_value(record, attr):
+  """
+  Resolves the value of the attribute ensuring a valid type is returned
+  Args:
+    - record (db.Model or ndb.Model) a Model instance
+    - attr (str) name of attribute to fetch value for
+  Returns:
+    The value of the given attribute provided by the record instance
+  """
+  val = getattr(record, attr, None)
+
+  if isinstance(val, basestring):
+    return _encode(val)
+  elif isinstance(val, db.Model):
+    return str(val.key())
+  else:
+    return val
       
+def _evaluate_name(record, qualified_name, args):
+  """ 
+  Evaluates a qualified name in order to get a value from a computation 
+
+  Evaluated function must return a single value, which will be used as the
+  value for the given column attribute
+
+  Args:
+    - record (db.Model or ndb.Model) Datastore Entity instance
+    - qualified_name (str) string with a qualified name to evaluate
+    - args (dict) dictionary of keyword args to use for evaluation
+
+  Returns:
+    mixed type value for column attribute
+  
+  """
+  func = handler_for_name(qualified_name)
+  return func(record=record, **args)
+
 def _to_csv(data_obj):
   """ 
   Converts given fields to correctly formated CSV record 
