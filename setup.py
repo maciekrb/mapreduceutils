@@ -6,7 +6,7 @@ setup(
   version="0.1",
   author="Maciek Ruckgaber",
   author_email="maciekrb@gmail.com",
-  description="Python module for transforming BigTable Datastore data",
+  description="Python mapreduce utilities for exporting / transforming Datastore entries",
   long_description=open('README.rst').read(),
   packages=["datastoreutils"],
   license="BSD License",
