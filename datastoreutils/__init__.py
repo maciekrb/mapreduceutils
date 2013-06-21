@@ -44,6 +44,23 @@ def _get_mapping_entry(property_map, record):
 def _record_matches_filters(record, property_filters):
   """
   Processes a filter list to determine if given record matches all the filters
+
+  Provides an additional filtering mechanism so filters can be applied in the
+  context of property_match_name and property_match_value. 
+
+  If you need global filters (that match all records), you are better off
+  using native mapreduce filters.
+
+  Args:
+    - record (db.Model, ndb.Model) Datastore entity instance
+    - property_filters (tuple) Tuple formated in the following way:
+      (attr_name, operation, value)
+      - attr_name: (str) indicates the attribute that will be fetched
+        via `getattr(record, attr_name)` from the record
+      - operation: (str) indicates the comparison operation to perform.
+        Currently only '=' (equalty) is supported.
+      - value: an arbitrary value that will be matched against the value
+        provided by `getattr(record, attr_name)`
   """
   if property_filters is None:
     return True
