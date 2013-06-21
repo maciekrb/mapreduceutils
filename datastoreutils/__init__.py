@@ -6,7 +6,7 @@ from google.appengine.ext import db
 from mapreduce import context
 from mapreduce.util import handler_for_name
 
-def datastore_map(record):
+def record_map(record):
   """
   Mapping function for Datastore entries
   @TODO assert all properties exist and are correct, throw errors if 
@@ -67,8 +67,11 @@ def _record_matches_filters(record, property_filters):
 
   for rule in property_filters:
     attr, oper, cmp_value = rule
+    oper = str(oper)
     real_value = _get_attribute_value(record, attr)
     if oper == '=' and real_value != cmp_value:
+      return False
+    elif oper == 'IN' and real_value not in cmp_value: 
       return False
 
   return True
