@@ -9,47 +9,89 @@ from mapreduce.util import handler_for_name
 def datastore_map(record):
   """
   Mapping function for Datastore entries
+  @TODO assert all properties exist and are correct, throw errors if 
+  additional unknown params are given as can be typos that could
+  for example skip filtering
   """
 
   ctx = context.get()
   property_map = ctx.mapreduce_spec.mapper.params.get('property_map')
 
-  row = _get_mapped_properties(property_map, record)
-  if row:
-    yield (_to_csv(row))
+  map_rule = _get_mapping_entry(property_map, record)
+  if map_rule and _record_matches_filters(record, map_rule.get("property_filters")):
+    row = _get_mapped_properties(record, map_rule["property_list"])
+    if row:
+      yield (_to_csv(row))
 
-def _get_mapped_properties(property_map, record):
+def _get_mapping_entry(property_map, record):
   """
-  Resolves mapped properties according to property_map 
+  Tries to match a property_match_name and property_match_value to the record
 
-  Tries to match property_match_name as a property_name of the record. If
-  a match exists, then compares the property_match_value. If value matches
-  record's value, then the property_list resolution is attempted. First matched 
-  combination is applied.
+  Args:
+    - property_map (list) list of rules for entry processing
+    - record (db.Model, ndb.Model) Datastore entry to be processed
 
-  If a property from property_list does not exist, a None type is added instead
-  so column structure is maintained.
+  Returns:
+    the rule that will be used to process the record
+
+  @TODO: Any optimization possibilities ??
   """
   for p in property_map:
     attr = _get_attribute_value(record, p["property_match_name"])
     if (attr == p["property_match_value"]):
-      obj = []
-      for k in p["property_list"]:
-        """ 
-        property list can either have attribute names or tuples defining an attribute
-        that will be created by a class/function/method qualified names
+      return p
 
-        Attribute names are defined as strings, qualified names should be tuples,
-        first item defines the attribute to which it will be mapped, the second
-        should define a qualified name such some_python_module.funcname
-        """
-        if isinstance(k, basestring):
-          obj.append((k, _get_attribute_value(record, k)))
-        else:
-          p_key, qualified_name, args = k
-          obj.append((p_key, _evaluate_name(record, qualified_name, args)))
+def _record_matches_filters(record, property_filters):
+  """
+  Processes a filter list to determine if given record matches all the filters
+  """
+  if property_filters is None:
+    return True
 
-      return OrderedDict(obj)
+  for rule in property_filters:
+    attr, oper, cmp_value = rule
+    real_value = _get_attribute_value(record, attr)
+    if oper == '=' and real_value != cmp_value:
+      return False
+
+  return True
+
+def _get_mapped_properties(record, property_list):
+  """
+  Resolves the defined property list from the record 
+
+  Args:
+
+    - record: (db.Model, ndb.Model) Datastore model instance to be processed
+    - property_list: List of fields to be generated from the record by applying
+      the following rules:
+
+      String arguments are treated as model attributes and resolved using getattr(). 
+      Tuples define operations as follows:
+        (assigned_name, resolve_function, function_args)
+        - assigned name is a name mapped to the result, so it can be futher used
+          in other operations.
+        - resolve_function is an arbitrary function that will be passed the instance
+          of the record followed by function_args as keyword args. The function should
+          be defined as a qualified name some_python_module.class/function/method.
+        - function_args: is a dictionary of keyword arguments to be passed to the
+          resolve_function.
+
+  If a property from property_list does not exist, a None type is added instead
+  so column structure is maintained.
+
+  Returns:
+    Ordered Dictionary containing property_list items in their respective order
+  """
+  obj = []
+  for k in property_list:
+    if isinstance(k, basestring):
+      obj.append((k, _get_attribute_value(record, k)))
+    else:
+      p_key, qualified_name, args = k
+      obj.append((p_key, _evaluate_name(record, qualified_name, args)))
+
+  return OrderedDict(obj)
 
 def _get_attribute_value(record, attr):
   """
