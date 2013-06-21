@@ -7,7 +7,7 @@ setup(
   author="Maciek Ruckgaber",
   author_email="maciekrb@gmail.com",
   description="Python mapreduce utilities for exporting / transforming Datastore entries",
-  long_description=open('README.rst').read(),
+  long_description=open('README.md').read(),
   packages=["datastoreutils"],
   license="BSD License",
   classifiers=[
