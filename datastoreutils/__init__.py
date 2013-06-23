@@ -2,9 +2,11 @@
 import csv
 from cStringIO import StringIO
 from collections import OrderedDict
-from google.appengine.ext import db
+from google.appengine.ext import db, ndb
 from mapreduce import context
 from mapreduce.util import handler_for_name
+
+__all__ = [ "record_map", "get_attribute_value", "to_csv" ]
 
 def record_map(record):
   """
@@ -21,7 +23,7 @@ def record_map(record):
   if map_rule and _record_matches_filters(record, map_rule.get("property_filters")):
     row = _get_mapped_properties(record, map_rule["property_list"])
     if row:
-      yield (_to_csv(row))
+      yield (to_csv(row))
 
 def _get_mapping_entry(property_map, record):
   """
@@ -37,7 +39,7 @@ def _get_mapping_entry(property_map, record):
   @TODO: Any optimization possibilities ??
   """
   for p in property_map:
-    attr = _get_attribute_value(record, p["property_match_name"])
+    attr = get_attribute_value(record, p["property_match_name"])
     if (attr == p["property_match_value"]):
       return p
 
@@ -68,7 +70,7 @@ def _record_matches_filters(record, property_filters):
   for rule in property_filters:
     attr, oper, cmp_value = rule
     oper = str(oper)
-    real_value = _get_attribute_value(record, attr)
+    real_value = get_attribute_value(record, attr)
     if oper == '=' and real_value != cmp_value:
       return False
     elif oper == 'IN' and real_value not in cmp_value: 
@@ -106,14 +108,14 @@ def _get_mapped_properties(record, property_list):
   obj = []
   for k in property_list:
     if isinstance(k, basestring):
-      obj.append((k, _get_attribute_value(record, k)))
+      obj.append((k, get_attribute_value(record, k)))
     else:
       p_key, qualified_name, args = k
       obj.append((p_key, _evaluate_name(record, qualified_name, args)))
 
   return OrderedDict(obj)
 
-def _get_attribute_value(record, attr):
+def get_attribute_value(record, attr):
   """
   Resolves the value of the attribute ensuring a valid type is returned
   Args:
@@ -122,12 +124,26 @@ def _get_attribute_value(record, attr):
   Returns:
     The value of the given attribute provided by the record instance
   """
-  val = getattr(record, attr, None)
+  if isinstance(record, db.Model): 
+    prop = record._properties.get(attr)
+    if isinstance(prop, db.ReferenceProperty): 
+      """ We only want to compare the the key without de-referencing it """
+      attr_key = "_%s" % attr
+      val = str(record.__dict__.get(attr_key)) if attr_key in record.__dict__ else None
+    else:
+      val = getattr(record, attr, None)
+
+  elif isinstance(record, ndb.Model):
+    val = getattr(record, attr, None)
+
+  elif isinstance(record, dict):
+    raise Exception("Unimplemented record of type dict")
+
+  else:
+    raise TypeError("Unknown record type, either Datastore db or ndb models or text CVS records are supported")
 
   if isinstance(val, basestring):
     return _encode(val)
-  elif isinstance(val, db.Model):
-    return str(val.key())
   else:
     return val
       
@@ -150,7 +166,7 @@ def _evaluate_name(record, qualified_name, args):
   func = handler_for_name(qualified_name)
   return func(record=record, **args)
 
-def _to_csv(data_obj):
+def to_csv(data_obj):
   """ 
   Converts given fields to correctly formated CSV record 
 

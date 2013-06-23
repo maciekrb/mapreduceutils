@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from distutils.core import setup
+from setuptools import setup
 
 setup(
   name="datastoreutils",
@@ -17,5 +17,6 @@ setup(
     'License :: BSD License',
     'Operating System :: OS Independent',
     'Topic :: Software Development :: Libraries'
-  ]
+  ],
+  test_suite='datastoreutils.tests.suite',
 )
