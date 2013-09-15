@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
   name="datastoreutils",
-  version="0.1",
+  version="1.0",
   author="Maciek Ruckgaber",
   author_email="maciekrb@gmail.com",
   description="Python mapreduce utilities for exporting / transforming Datastore entries",
@@ -11,7 +11,7 @@ setup(
   packages=["datastoreutils"],
   license="BSD License",
   classifiers=[
-    'Development Status :: 3 - Alpha',
+    'Development Status :: 1 - Beta',
     'Environment :: Google Appengine',
     'Intended Audience :: Appengine datastore users',
     'License :: BSD License',
