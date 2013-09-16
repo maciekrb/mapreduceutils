@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
   name="datastoreutils",
-  version="1.0",
+  version="1.1",
   author="Maciek Ruckgaber",
   author_email="maciekrb@gmail.com",
   description="Python mapreduce utilities for exporting / transforming Datastore entries",
@@ -18,5 +18,5 @@ setup(
     'Operating System :: OS Independent',
     'Topic :: Software Development :: Libraries'
   ],
-  test_suite='datastoreutils.tests.suite',
+  test_suite='nose.collector',
 )

@@ -1,3 +1,5 @@
-env
+.coverage
 build
 datastoreutils.egg-info
+env
+mapreduce
