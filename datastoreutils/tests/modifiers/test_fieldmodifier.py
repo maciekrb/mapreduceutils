@@ -2,9 +2,9 @@ import unittest
 from datastoreutils.modifiers import FieldModifier
 
 class DummyFieldModifier(FieldModifier):
-  _META_NAME = "Test Name"
-  _META_DESCRIPTION = "Test Description"
-  _META_ARGS = {
+  META_NAME = "Test Name"
+  META_DESCRIPTION = "Test Description"
+  META_ARGS = {
     "arg_1": {
       "name": "argument 1",
       "description": "argument 1 desc",
@@ -20,7 +20,7 @@ class DummyFieldModifier(FieldModifier):
       "type": basestring,
     }
   }
-  _META_OPERANDS = {
+  META_OPERANDS = {
     "operand_1": {
       "name": "operand 1",
       "description": "operand 1 desc",
@@ -36,9 +36,9 @@ class DummyFieldModifier(FieldModifier):
 
 
 class DummyFieldModifier2(FieldModifier):
-  _META_NAME = "Test Name"
-  _META_DESCRIPTION = "Test Description"
-  _META_ARGS = {
+  META_NAME = "Test Name"
+  META_DESCRIPTION = "Test Description"
+  META_ARGS = {
     "arg_1": {
       "name": "argument 1",
       "description": "argument 1 desc",
@@ -54,7 +54,7 @@ class DummyFieldModifier2(FieldModifier):
       "type": basestring,
     }
   }
-  _META_OPERANDS = {
+  META_OPERANDS = {
     "operand_1": {
       "name": "operand 1",
       "description": "operand 1 desc",
@@ -80,11 +80,10 @@ class DummyModel(object):
 class TestFieldModifier(unittest.TestCase):
 
   def test_metadata_definition(self):
-    mod = DummyFieldModifier()
-    self.assertEqual(mod.meta_name, "Test Name")
-    self.assertEqual(mod.meta_description, "Test Description")
-    self.assertIsInstance(mod.meta_arguments, dict)
-    self.assertIsInstance(mod.meta_operands, dict)
+    self.assertEqual(DummyFieldModifier.META_NAME, "Test Name")
+    self.assertEqual(DummyFieldModifier.META_DESCRIPTION, "Test Description")
+    self.assertIsInstance(DummyFieldModifier.META_ARGS, dict)
+    self.assertIsInstance(DummyFieldModifier.META_OPERANDS, dict)
 
   def test_instantiation_from_dict(self):
     definition = {

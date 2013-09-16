@@ -11,9 +11,9 @@ class DateModifier(FieldModifier):
   Provides strftime for DateObjects
   """
 
-  _META_NAME = 'Date Formatter'
-  _META_DESCRIPTION = 'Date Formatter Description'
-  _META_ARGS = {
+  META_NAME = 'Date Formatter'
+  META_DESCRIPTION = 'Date Formatter Description'
+  META_ARGS = {
     "date_format": {
       "name": "Output format",
       "description": "Desired Date Time field output format",
@@ -36,7 +36,7 @@ class DateModifier(FieldModifier):
     }
   }
 
-  _META_OPERANDS = {
+  META_OPERANDS = {
     "date": {
       "name": "Date column",
       "description": "The provided column value will be converted to the given date format",
@@ -53,9 +53,9 @@ class ConstantModifier(FieldModifier):
   """
   Provides constant value output
   """
-  _META_NAME = "Constant Value"
-  _META_DESCRIPTION = "Allows to generate constant values for a column"
-  _META_ARGS = {
+  META_NAME = "Constant Value"
+  META_DESCRIPTION = "Allows to generate constant values for a column"
+  META_ARGS = {
       "value": {
         "name": "Constant value",
         "description": "The constant value that should be generated",
@@ -72,7 +72,7 @@ class ConstantModifier(FieldModifier):
         }
       }
     }
-  _META_OPERANDS = {} # No operands are required for constant value generation
+  META_OPERANDS = {} # No operands are required for constant value generation
 
   def _evaluate(self):
 

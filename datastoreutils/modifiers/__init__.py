@@ -8,13 +8,9 @@ __all__ = ['FieldModifier', 'primitives']
 
 class FieldModifier(object):
 
-  def __init__(self, identifier=None, operands=None, arguments=None):
+  def __init__(self, identifier, operands=None, arguments=None):
 
     self.identifier = identifier
-    self.meta_name = self._META_NAME
-    self.meta_description = self._META_DESCRIPTION
-    self.meta_arguments = self._META_ARGS
-    self.meta_operands = self._META_OPERANDS
 
     if operands:
       self.operands = { key : val for key, val in operands.iteritems() }
