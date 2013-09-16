@@ -8,7 +8,7 @@ setup(
   author_email="maciekrb@gmail.com",
   description="Python mapreduce utilities for exporting / transforming Datastore entries",
   long_description=open('README.md').read(),
-  packages=["datastoreutils"],
+  packages=["datastoreutils", "datastoreutils.modifiers"],
   license="BSD License",
   classifiers=[
     'Development Status :: 1 - Beta',

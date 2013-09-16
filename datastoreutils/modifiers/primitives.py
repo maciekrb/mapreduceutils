@@ -4,7 +4,7 @@ Basice value modifier classes
 Implements Basic format and logic modifiers
 """
 import datetime
-from datastoreutils.modifiers import FieldModifier
+from . import FieldModifier
 
 class DateModifier(FieldModifier):
   """

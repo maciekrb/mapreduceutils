@@ -3,6 +3,8 @@ Modifier implementation
 """
 from mapreduce.util import for_name
 
+__all__ = ['FieldModifier', 'primitives']
+
 
 class FieldModifier(object):
 
