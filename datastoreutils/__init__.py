@@ -43,7 +43,7 @@ def _get_mapping_entry(property_map, record):
     if (attr == p["property_match_value"]):
       return p
 
-def _record_matches_filters(record, property_filters):
+def _record_matches_filters(record, property_filters, key_filters=None):
   """
   Processes a filter list to determine if given record matches all the filters
 
@@ -53,9 +53,11 @@ def _record_matches_filters(record, property_filters):
   If you need global filters (that match all records), you are better off
   using native mapreduce filters.
 
+  If key_filters are defined, these are processed before property filters.
+
   Args:
     - record (db.Model, ndb.Model) Datastore entity instance
-    - property_filters (tuple) Tuple formated in the following way:
+    - property_filters (iterable) List of tuples formated in the following way:
       (attr_name, operation, value)
       - attr_name: (str) indicates the attribute that will be fetched
         via `getattr(record, attr_name)` from the record
@@ -63,9 +65,16 @@ def _record_matches_filters(record, property_filters):
         Currently only '=' (equalty) is supported.
       - value: an arbitrary value that will be matched against the value
         provided by `getattr(record, attr_name)`
+   - key_filters (iterable) List of tuples formated in the following way:
+      (Model name, Value). Key filters are processed left to right, meaning that
+      the order of key filters provided does matter. In only one key filter is provided
+      it is evaluated against the left most pair of the key and so on.
   """
-  if property_filters is None:
+  if property_filters is None and key_filters is None:
     return True
+
+  if not _validates_key_filters(record, key_filters):
+    return False
 
   for rule in property_filters:
     attr, oper, cmp_value = rule
@@ -77,6 +86,40 @@ def _record_matches_filters(record, property_filters):
       return False
 
   return True
+
+def _get_key_pairs(record_key):
+  pairs = list()
+  while True:
+    pairs.insert(0 , (record_key.kind(), record_key.id_or_name()))
+    parent = record_key.parent()
+    if parent:
+      record_key = parent
+    else:
+      break
+
+  return pairs
+
+def _validates_key_filters(record, key_filters):
+  """
+  Performs key filters validation on a record
+
+  key filters should be a list of lists, if a record key
+  matches any of the provided paths, it validates as true
+  """
+
+  if not key_filters:
+    return True
+
+  record_pairs = _get_key_pairs(record.key())
+  for rule_pair in key_filters:
+    chain = list()
+    for pos, r  in enumerate(rule_pair):
+      chain.append(record_pairs[pos] == r)
+
+    if all(chain):
+      return True
+
+  return False
 
 def _get_mapped_properties(record, property_list):
   """
