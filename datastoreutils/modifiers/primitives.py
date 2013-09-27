@@ -35,12 +35,11 @@ class DateModifier(FieldModifier):
       }
     }
   }
-
   META_OPERANDS = {
     "date": {
       "name": "Date column",
       "description": "The provided column value will be converted to the given date format",
-      "valid_types": [datetime.datetime]
+      "valid_types": [datetime.date, datetime.datetime]
     }
   }
 
