@@ -19,7 +19,8 @@ def record_map(record):
   property_map = ctx.mapreduce_spec.mapper.params.get('property_map')
 
   map_rule = _get_mapping_entry(property_map, record)
-  if map_rule and _record_matches_filters(record, map_rule.get("property_filters")):
+  if map_rule and _record_matches_filters(record, map_rule.get("property_filters"),
+      map_rule.get("key_filters")):
     row = _get_mapped_properties(record, map_rule["property_list"])
     if row:
       yield (to_csv(row))
