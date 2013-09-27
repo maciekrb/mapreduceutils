@@ -22,7 +22,7 @@ def record_map(record):
   if map_rule and _record_matches_filters(record, map_rule.get("property_filters"),
       map_rule.get("key_filters")):
     row = _get_mapped_properties(record, map_rule["property_list"])
-    if row:
+    if any(row):
       yield (to_csv(row))
 
 def _get_mapping_entry(property_map, record):

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+import logging
 import datetime
 from testlib import testutil
 from google.appengine.ext import db
@@ -306,3 +307,44 @@ class DatastoreOutput(testutil.HandlerTestBase):
     self.assertEquals(2, len(output_data))
     rec = output_data[0] if output_data[0].startswith('2010-') else output_data[1]
     self.assertEquals('2010-09-11 19:20:21,test_record,Some other value here,4\r\n', rec)
+
+  def test_map_pipeline_does_not_yield_for_empty_properties(self):
+    """ Property map filters filter out non matching records """
+
+    # Prepare test data
+    test_data = [
+      {
+        "record_type" : "test_record",
+        "created_time" : None,
+        "data_quality" : None,
+        "schema_name" : ""
+      }
+    ]
+
+    for r in test_data:
+      TestRecord(**r).put()
+
+    output_data = _run_pipeline(
+      self.taskqueue,
+      __name__ + ".TestRecord",
+      __name__ + ".record_map",
+      params={
+        "property_map": [{
+          "property_match_name": "record_type",
+          "property_match_value": "test_record",
+          "property_list": [
+            "created_time",
+            "expando_attr",
+            "schema_name",
+            "data_quality"
+          ]
+        }]
+      }
+    )
+
+    # Asset Pipeline finished
+    self.assertEquals(1, len(self.emails))
+    self.assertTrue(self.emails[0][1].startswith("Pipeline successful:"))
+
+    # Assert number of rows, and format of one of them. Order is not predictable
+    self.assertEquals(0, len(output_data))
