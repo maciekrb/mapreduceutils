@@ -40,25 +40,32 @@ class TestRecordFilters(unittest.TestCase):
     key = db.Key.from_path('ABC', 1, 'BCD', 2, 'SampleModel', 3)
     model = SampleModel(key=key)
 
-    res = _validates_key_filters(model, None)
+    pairs = _get_key_pairs(model.key())
+    res = _validates_key_filters(pairs, None)
     self.assertEqual(True, res)
 
-    res = _validates_key_filters(model, [(('ABC', 1),)])
+    pairs = _get_key_pairs(model.key())
+    res = _validates_key_filters(pairs, [(('ABC', 1),)])
     self.assertEqual(True, res)
 
-    res = _validates_key_filters(model, [(('ABC', 1), ('BCD', 2))])
+    pairs = _get_key_pairs(model.key())
+    res = _validates_key_filters(pairs, [(('ABC', 1), ('BCD', 2))])
     self.assertEqual(True, res)
 
-    res = _validates_key_filters(model, [(('ABC', 2), ('BCD', 2))])
+    pairs = _get_key_pairs(model.key())
+    res = _validates_key_filters(pairs, [(('ABC', 2), ('BCD', 2))])
     self.assertEqual(False, res)
 
-    res = _validates_key_filters(model, [(('ABC', 1), ('CDE', 2))])
+    pairs = _get_key_pairs(model.key())
+    res = _validates_key_filters(pairs, [(('ABC', 1), ('CDE', 2))])
     self.assertEqual(False, res)
 
-    res = _validates_key_filters(model, [(('ABC', 1), ('CDE', 2)), (('ABC', 1), ('BCD', 2))])
+    pairs = _get_key_pairs(model.key())
+    res = _validates_key_filters(pairs, [(('ABC', 1), ('CDE', 2)), (('ABC', 1), ('BCD', 2))])
     self.assertEqual(True, res)
 
-    res = _validates_key_filters(model, [(('ABC', 1), ('BCD', 2)), (('ABC', 1), ('CDE', 2))])
+    pairs = _get_key_pairs(model.key())
+    res = _validates_key_filters(pairs, [(('ABC', 1), ('BCD', 2)), (('ABC', 1), ('CDE', 2))])
     self.assertEqual(True, res)
 
   def test_record_filter_match(self):

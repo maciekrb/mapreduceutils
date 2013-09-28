@@ -1,4 +1,5 @@
 import csv
+import logging
 from cStringIO import StringIO
 from google.appengine.ext import db, ndb
 from mapreduce import context
@@ -18,16 +19,16 @@ def record_map(record):
   ctx = context.get()
   property_map = ctx.mapreduce_spec.mapper.params.get('property_map')
 
-  map_rule = _get_mapping_entry(property_map, record)
+  map_rule = _get_ruleset(property_map, record)
   if map_rule and _record_matches_filters(record, map_rule.get("property_filters"),
       map_rule.get("key_filters")):
     row = _get_mapped_properties(record, map_rule["property_list"])
     if any(row):
       yield (to_csv(row))
 
-def _get_mapping_entry(property_map, record):
+def _get_ruleset(property_map, record):
   """
-  Tries to match a property_match_name and property_match_value to the record
+  Tries to match one of the rules in property_map to current record
 
   Args:
     - property_map (list) list of rules for entry processing
@@ -38,17 +39,45 @@ def _get_mapping_entry(property_map, record):
 
   @TODO: Any optimization possibilities ??
   """
-  for p in property_map:
-    attr = get_attribute_value(record, p["property_match_name"])
-    if (attr == p["property_match_value"]):
-      return p
+  rec_key_pairs = _get_key_pairs(record.key())
+  for rule in property_map:
+    if "model_match_rule" not in rule:
+      raise KeyError("model_match_rule is not defined in {}".format(rule))
+
+    if "properties" not in rule["model_match_rule"] and "key" not in rule["model_match_rule"]:
+      raise KeyError("model_match_rule needs either properties or key defined {}".format(rule))
+
+    match_rule = rule["model_match_rule"]
+    key_match = False
+    prop_match = False
+    logging.warn(match_rule)
+    try:
+      key_match = _validates_key_filters(rec_key_pairs, [match_rule["key"]])
+    except KeyError: # Means no key was given to match
+      key_match = True
+
+    logging.warn("Key match: %s" % key_match)
+    try:
+      chain = list()
+      for prop in match_rule["properties"]:
+        attr_name, attr_value = prop
+        attr = get_attribute_value(record, attr_name)
+        chain.append(attr == attr_value)
+      prop_match = all(chain)
+    except KeyError: # Means no properties were given to match
+      prop_match = True
+
+    logging.warn("Prop match: %s" % prop_match)
+
+    if all((key_match, prop_match)):
+      return rule
 
 def _record_matches_filters(record, property_filters, key_filters=None):
   """
   Processes a filter list to determine if given record matches all the filters
 
-  Provides an additional filtering mechanism so filters can be applied in the
-  context of property_match_name and property_match_value.
+  Provides an additional filtering mechanism so filters can be applied to a model
+  matching model_match_rule.
 
   If you need global filters (that match all records), you are better off
   using native mapreduce filters.
@@ -65,7 +94,7 @@ def _record_matches_filters(record, property_filters, key_filters=None):
         Currently only '=' (equalty) is supported.
       - value: an arbitrary value that will be matched against the value
         provided by `getattr(record, attr_name)`
-   - key_filters (iterable) List of tuples formated in the following way:
+    - key_filters (iterable) List of tuples formated in the following way:
       (Model name, Value). Key filters are processed left to right, meaning that
       the order of key filters provided does matter. In only one key filter is provided
       it is evaluated against the left most pair of the key and so on.
@@ -73,7 +102,8 @@ def _record_matches_filters(record, property_filters, key_filters=None):
   if property_filters is None and key_filters is None:
     return True
 
-  if not _validates_key_filters(record, key_filters):
+  record_key_pairs = _get_key_pairs(record.key())
+  if not _validates_key_filters(record_key_pairs, key_filters):
     return False
 
   for rule in property_filters:
@@ -99,7 +129,7 @@ def _get_key_pairs(record_key):
 
   return pairs
 
-def _validates_key_filters(record, key_filters):
+def _validates_key_filters(record_key_pairs, key_filters):
   """
   Performs key filters validation on a record
 
@@ -110,11 +140,12 @@ def _validates_key_filters(record, key_filters):
   if not key_filters:
     return True
 
-  record_pairs = _get_key_pairs(record.key())
+  logging.warn("record's: %s" % record_key_pairs)
+  logging.warn("rule's: %s" % key_filters)
   for rule_pair in key_filters:
     chain = list()
     for pos, r  in enumerate(rule_pair):
-      chain.append(record_pairs[pos] == r)
+      chain.append(record_key_pairs[pos] == r)
 
     if all(chain):
       return True

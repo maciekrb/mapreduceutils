@@ -109,8 +109,9 @@ class DatastoreOutput(testutil.HandlerTestBase):
       __name__ + ".record_map",
       params={
         "property_map": [{
-          "property_match_name": "record_type",
-          "property_match_value": "test_record",
+          "model_match_rule": {
+            "properties" : [("record_type", "test_record")],
+          },
           "property_list": [
             "created_time",
             "data_quality",
@@ -160,8 +161,9 @@ class DatastoreOutput(testutil.HandlerTestBase):
       __name__ + ".record_map",
       params={
         "property_map": [{
-          "property_match_name": "schema_name",
-          "property_match_value": "cobertura_vegetal",
+          "model_match_rule": {
+            "properties" : [("schema_name", "cobertura_vegetal")],
+          },
           "property_list": [
             "created_time",
             "schema_name",
@@ -219,8 +221,9 @@ class DatastoreOutput(testutil.HandlerTestBase):
       __name__ + ".record_map",
       params={
         "property_map": [{
-          "property_match_name": "schema",
-          "property_match_value": str(schema),
+          "model_match_rule": {
+            "properties" : [("schema", str(schema))],
+          },
           "property_list": [
             "created_time",
             "schema_name",
@@ -284,8 +287,9 @@ class DatastoreOutput(testutil.HandlerTestBase):
       __name__ + ".record_map",
       params={
         "property_map": [{
-          "property_match_name": "record_type",
-          "property_match_value": "test_record",
+          "model_match_rule": {
+            "properties" : [("record_type", "test_record")],
+          },
           "property_filters": [
             ("data_quality", "=", 4)
           ],
@@ -330,8 +334,9 @@ class DatastoreOutput(testutil.HandlerTestBase):
       __name__ + ".record_map",
       params={
         "property_map": [{
-          "property_match_name": "record_type",
-          "property_match_value": "test_record",
+          "model_match_rule": {
+            "properties" : [("record_type", "test_record")],
+          },
           "property_list": [
             "created_time",
             "expando_attr",
