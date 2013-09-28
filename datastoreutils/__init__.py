@@ -129,7 +129,7 @@ class DatastoreRecord(object):
     for rule_pair in key_filters:
       chain = list()
       for pos, r  in enumerate(rule_pair):
-        chain.append(self.key_pairs[pos] == r)
+        chain.append(self.key_pairs[pos] == tuple(r))
 
       if all(chain):
         return True

@@ -243,6 +243,76 @@ class DatastoreOutput(testutil.HandlerTestBase):
     rec = '2010-08-12 18:23:20,cobertura_vegetal,Bosques y Áreas Seminaturales,1\r\n'
     self.assertEquals(rec, output_data[0])
 
+  def test_map_pipeline_key_rule_filters(self):
+    """ Property map filters filter out non matching records """
+
+    # Prepare test data
+    test_data = [
+      {
+        "key": db.Key.from_path('ABC', 1, 'BCD', 2, 'TestRecord', 1),
+        "record_type" : "test_record",
+        "created_time" : datetime.datetime(2010,8,12,18,23,20),
+        "data_quality" : 3,
+        "schema_name" : "This is a, tests string",
+        "expando_attr": "GOOD_VALUE"
+      },
+      {
+        "key": db.Key.from_path('ABC', 1, 'BCD', 2, 'TestRecord', 2),
+        "record_type" : "test_record",
+        "created_time" : datetime.datetime(2010,9,11,19,20,21),
+        "data_quality" : 4,
+        "schema_name" : "One Value",
+        "expando_attr": "GOOD_VALUE"
+      },
+      {
+        "key": db.Key.from_path('ABC', 2, 'BCD', 2, 'TestRecord', 2),
+        "record_type" : "test_record",
+        "created_time" : datetime.datetime(2011,9,11,19,20,21),
+        "data_quality" : 1,
+        "schema_name" : "some_schema_name",
+        "expando_attr": "BAD_VALUE"
+      },
+      {
+        "key": db.Key.from_path('ABC', 2, 'BCD', 2, 'TestRecord', 2),
+        "record_type" : "test_record",
+        "created_time" : datetime.datetime(2011,9,11,19,20,21),
+        "data_quality" : 4,
+        "schema_name" : "some_schema_name",
+        "expando_attr": "BAD_VALUE"
+      }
+    ]
+
+    for r in test_data:
+      TestRecord(**r).put()
+
+    output_data = _run_pipeline(
+      self.taskqueue,
+      __name__ + ".TestRecord",
+      __name__ + ".record_map",
+      params={
+        "property_map": [{
+          "model_match_rule": {
+            "key" : [("ABC", 1)],
+          },
+          "property_list": [
+            "created_time",
+            "record_type",
+            "expando_attr",
+            "data_quality",
+          ]
+        }]
+      }
+    )
+
+    # Asset Pipeline finished
+    self.assertEquals(1, len(self.emails))
+    self.assertTrue(self.emails[0][1].startswith("Pipeline successful:"))
+
+    # Assert number of rows, and format of one of them. Order is not predictable
+    self.assertEquals(2, len(output_data))
+    self.assertRegexpMatches(output_data[0], ".+,GOOD_VALUE,.+")
+    self.assertRegexpMatches(output_data[1], ".+,GOOD_VALUE,.+")
+
   def test_map_pipeline_prperty_map_filters(self):
     """ Property map filters filter out non matching records """
 
