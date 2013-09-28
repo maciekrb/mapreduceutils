@@ -21,7 +21,7 @@ class TestClass(db.Expando):
   attr1 = db.StringProperty()
   attr2 = db.DateTimeProperty()
 
-# We now insert this in the database 
+# We now insert this in the datastore 
 obj = TestClass(attr1="One", attr2=some_datetime, expando1="Something Else")
 obj.put()
 
@@ -117,22 +117,22 @@ Keys `db.Key` or `ndb.Key`, given as a path:
 ```
 
 In which case keys will be validated from left to right on top of the record key. The above
-example will match any `Key` who's path starts with `('ModelA', 3443)` and continues with
+example will match any `Key` who's path starts with `('ModelA', 3445)` and continues with
 `('ModelB', 4332)` regardles of the key pairs that follow. You can use keys containing either ids 
 or names safely.
 
 More complex matching rules involving keys and properties are also allowed:
 ```python
   model_match_rule = {
-    "key" : (('ModelA', 3445), ('ModelB', 4322)),
+    "key" : (('ModelA', 3445), ('ModelB', 4332)),
     "properties": [("attr1", "Three"), ("attr2", "something")]
   }
 ```
 
-Be careful though that the rules are matched in order as the record reaches the 
-`datastoreutils.record_map` function, and thus the first matched rule is applied, meaning that you
+Be careful though that the rules are matched in order. As the record reaches the 
+`datastoreutils.record_map` function, the rules are processed in the order they were defined
+in the `property_map` and thus the first matched rule is applied, meaning that you
 should put your more specific rules before the general ones.
-
 
 The full pipleline would look like this :
 
@@ -286,3 +286,4 @@ This illustrates how to chain modifiers:
 
 - Model match rules that test for presence of an attribute without matching the value might be useful.
 - More General use Modifier functions would be really nice.
+- FieldModifier arg, and operand validation according to class metadata
