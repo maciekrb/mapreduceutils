@@ -80,12 +80,16 @@ class DummyModel(object):
 class TestFieldModifier(unittest.TestCase):
 
   def test_metadata_definition(self):
+    """ FieldModifier class metadata correctly defined """
+
     self.assertEqual(DummyFieldModifier.META_NAME, "Test Name")
     self.assertEqual(DummyFieldModifier.META_DESCRIPTION, "Test Description")
     self.assertIsInstance(DummyFieldModifier.META_ARGS, dict)
     self.assertIsInstance(DummyFieldModifier.META_OPERANDS, dict)
 
   def test_instantiation_from_dict(self):
+    """ FieldModifier instantiation from dict  """
+
     definition = {
       "identifier": "xy0002",
       "method": "datastoreutils.tests.modifiers.test_fieldmodifier.DummyFieldModifier",
@@ -112,6 +116,7 @@ class TestFieldModifier(unittest.TestCase):
     self.assertEquals("234", mod.get_operand('operand2'))
 
   def test_modifier_return_value(self):
+    """ FieldModifier class returns expected values """
 
     chain = {}
     record = DummyModel()
@@ -120,6 +125,7 @@ class TestFieldModifier(unittest.TestCase):
     self.assertEqual('testvalue', chain['xy0001'])
 
   def test_modifier_chaining(self):
+    """ FieldModifer chained operations work """
 
     chain = {}
     record = DummyModel()

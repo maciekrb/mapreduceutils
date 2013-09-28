@@ -8,6 +8,7 @@ class Record(object):
 class TestDateModifier(unittest.TestCase):
 
   def test_datetime_conversion(self):
+    """ DateModifier returns consistent values with strftime args on datetime objects """
 
     chain = {}
     record = Record()
@@ -59,6 +60,7 @@ class TestDateModifier(unittest.TestCase):
     self.assertEqual('2010-10-03', chain['xxxx001'])
 
   def test_date_conversion(self):
+    """ DateModifier returns consistent values with strftime args on date objects """
 
     chain = {}
     record = Record()
@@ -112,6 +114,7 @@ class TestDateModifier(unittest.TestCase):
 
 class TestConstantModifier(unittest.TestCase):
   def test_constant_int(self):
+    """ ConstantModifier returns int values for int type constants """
 
     chain = {}
     record = Record()
@@ -124,6 +127,7 @@ class TestConstantModifier(unittest.TestCase):
     self.assertEqual(1, chain['xxxx001'])
 
   def test_constant_str(self):
+    """ ConstantModifier returns str values for str type constants """
 
     chain = {}
     record = Record()
@@ -136,6 +140,7 @@ class TestConstantModifier(unittest.TestCase):
     self.assertEqual('1', chain['xxxx001'])
 
   def test_constant_float(self):
+    """ ConstantModifier returns float values for float type constants """
 
     chain = {}
     record = Record()
@@ -148,6 +153,7 @@ class TestConstantModifier(unittest.TestCase):
     self.assertEqual(1.0, chain['xxxx001'])
 
   def test_non_coercible(self):
+    """ ConstantModifier returns errors when values are not coercible"""
 
     chain = {}
     record = Record()
