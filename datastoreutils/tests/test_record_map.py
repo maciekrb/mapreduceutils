@@ -88,7 +88,7 @@ class DatastoreOutput(testutil.HandlerTestBase):
         "record_type" : "test_record",
         "created_time" : datetime.datetime(2010,8,12,18,23,20),
         "data_quality" : 3,
-        "schema_name" : "This is a, tests string",
+        "schema_name" : u"This is á, tests string",
         "expando_attr": "Some value here"
       },
       {
@@ -129,7 +129,7 @@ class DatastoreOutput(testutil.HandlerTestBase):
     # Assert number of rows, and format of one of them. Order is not predictable
     self.assertEquals(2, len(output_data))
     rec = output_data[0] if output_data[0].startswith('2010-') else output_data[1]
-    self.assertEquals('2010-08-12 18:23:20,3,Some value here,"This is a, tests string"\r\n', rec)
+    self.assertEquals('2010-08-12 18:23:20,3,Some value here,"This is á, tests string"\r\n', rec)
 
   def test_map_pipeline_property_map(self):
     """ Test that only mapped properties are included in the resulting record """

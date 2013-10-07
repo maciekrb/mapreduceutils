@@ -11,7 +11,7 @@ setup(
   packages=["datastoreutils", "datastoreutils.modifiers"],
   license="BSD License",
   classifiers=[
-    'Development Status :: 2 - Beta',
+    'Development Status :: 2 - RC',
     'Environment :: Google Appengine',
     'Intended Audience :: Appengine datastore users',
     'License :: BSD License',

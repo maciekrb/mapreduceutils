@@ -24,8 +24,8 @@ class FieldModifier(object):
   def operands_are_valid(self):
     pass
 
-  def get_argument(self, name):
-    return self.arguments[name]
+  def get_argument(self, name, default=None):
+    return self.arguments.get(name, default)
 
   def get_operand(self, name):
     prefix, attr_name = self.operands[name].split('.')
