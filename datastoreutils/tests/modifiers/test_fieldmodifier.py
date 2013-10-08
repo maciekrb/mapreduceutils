@@ -80,7 +80,7 @@ class DummyModel(object):
 class TestFieldModifier(unittest.TestCase):
 
   def test_metadata_definition(self):
-    """ FieldModifier class metadata correctly defined """
+    """ FieldModifier Class metadata correctly defined """
 
     self.assertEqual(DummyFieldModifier.META_NAME, "Test Name")
     self.assertEqual(DummyFieldModifier.META_DESCRIPTION, "Test Description")
@@ -114,6 +114,25 @@ class TestFieldModifier(unittest.TestCase):
     mod.eval(rec, {'xxxa1': '234'})
     self.assertEquals("123", mod.get_operand('operand1'))
     self.assertEquals("234", mod.get_operand('operand2'))
+
+  def test_to_dict(self):
+    """ FieldModifier creates consistent to_dict representation  """
+
+    definition = {
+      "identifier": "xy0002",
+      "method": "datastoreutils.tests.modifiers.test_fieldmodifier.DummyFieldModifier",
+      "args": {
+        "test_arg1": "abc",
+        "test_arg2": "bcd"
+      },
+      "operands": {
+        "operand1": "model.prop_a",
+        "operand2": "identifier.xxxa1"
+      }
+    }
+
+    mod = FieldModifier.from_dict(definition)
+    self.assertEqual(definition, mod.to_dict())
 
   def test_modifier_return_value(self):
     """ FieldModifier class returns expected values """

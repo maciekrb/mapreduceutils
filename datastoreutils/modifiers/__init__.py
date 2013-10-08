@@ -61,6 +61,17 @@ class FieldModifier(object):
     """
     return self.modifier_chain[identifier]
 
+  def to_dict(self):
+    """
+    Retrieves a serialized version of the Modifier
+    """
+    return {
+      "method": "{}.{}".format(self.__class__.__module__, self.__class__.__name__),
+      "identifier": self.identifier,
+      "operands": { k:v for k,v in self.operands.iteritems() },
+      "args": { k:v for k,v in self.arguments.iteritems() }
+    }
+
   @classmethod
   def from_qualified_name(cls, qualified_name, constructor_args=None, prefix=''):
     """
@@ -92,3 +103,4 @@ class FieldModifier(object):
     }
     obj = cls.from_qualified_name(definition['method'], constructor_args=args)
     return obj
+

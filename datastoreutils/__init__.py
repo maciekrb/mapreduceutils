@@ -3,8 +3,12 @@ from cStringIO import StringIO
 from google.appengine.ext import db, ndb
 from mapreduce import context
 from datastoreutils.modifiers import FieldModifier
+from datastoreutils.propertymap import PropertyMap, KeyModelMatchRule, ModelRuleSet
 
-__all__ = [ "FieldModifier", "record_map", "get_attribute_value", "to_csv" ]
+__all__ = [
+  "PropertyMap", "KeyModelMatchRule", "ModelRuleSet", "FieldModifier",
+  "record_map", "to_csv"
+]
 
 def cached_property(f):
   """returns a cached property that is calculated by function f"""

@@ -7,6 +7,16 @@ class Record(object):
 
 class TestDateFormatModifier(unittest.TestCase):
 
+  def test_consistent_to_dict_module(self):
+    """ DateFormatModifier consistently serializes class path """
+
+    modifier = primitives.DateFormatModifier(
+        identifier='xxxx001',
+        operands={"value": "model.created_time"},
+        arguments={"date_format": "%Y"}
+    )
+    self.assertEqual('datastoreutils.modifiers.primitives.DateFormatModifier', modifier.to_dict()['method'])
+
   def test_datetime_conversion(self):
     """ DateFormatModifier returns consistent values with strftime args on datetime objects """
 
