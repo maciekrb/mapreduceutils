@@ -275,58 +275,33 @@ class TestDatastoreRecordFilters(unittest.TestCase):
     key = db.Key.from_path('ABC', 1, 'BCD', 2, 'SampleDbModel', 3)
     record = DatastoreRecord(SampleDbModel(key=key, a="test", b=123))
 
-    """ key only filter success """
+    """ empty filter success """
     pfilters = {}
-    kfilters = [(('ABC', 1), ('BCD', 2))]
-    self.assertEqual(True, record.matches_filters(pfilters, kfilters))
-
-    """ key only filter fail """
-    pfilters = {}
-    kfilters = [(('ABC', 1), ('BCE', 2))]
-    self.assertEqual(False, record.matches_filters(pfilters, kfilters))
+    self.assertEqual(True, record.matches_filters(pfilters))
 
     """ key filter with property success """
     pfilters = [('a', '=', 'test')]
-    kfilters = [(('ABC', 1), ('BCD', 2))]
-    self.assertEqual(True, record.matches_filters(pfilters, kfilters))
+    self.assertEqual(True, record.matches_filters(pfilters))
 
     """ key filter with property fail """
     pfilters = [('a', '=', 'badtest')]
-    kfilters = [(('ABC', 1), ('BCD', 2))]
-    self.assertEqual(False, record.matches_filters(pfilters, kfilters))
+    self.assertEqual(False, record.matches_filters(pfilters))
 
-    """ key filter failure with good property filter """
-    pfilters = [('a', '=', 'test')]
-    kfilters = [(('ABC', 1), ('BCD', 3))]
-    self.assertEqual(False, record.matches_filters(pfilters, kfilters))
   def test_ndb_filters_match(self):
     """ Combinations of ndb.Model key_filters and property filters match """
 
     key = ndb.Key('ABC', 1, 'BCD', 2, 'SampleNDBModel', 3)
     record = DatastoreRecord(SampleNDBModel(key=key, a="test", b=123))
 
-    """ key only filter success """
+    """ empty filter success """
     pfilters = {}
-    kfilters = [(('ABC', 1), ('BCD', 2))]
-    self.assertEqual(True, record.matches_filters(pfilters, kfilters))
+    self.assertEqual(True, record.matches_filters(pfilters))
 
-    """ key only filter fail """
-    pfilters = {}
-    kfilters = [(('ABC', 1), ('BCE', 2))]
-    self.assertEqual(False, record.matches_filters(pfilters, kfilters))
-
-    """ key filter with property success """
+    """  property filter success """
     pfilters = [('a', '=', 'test')]
-    kfilters = [(('ABC', 1), ('BCD', 2))]
-    self.assertEqual(True, record.matches_filters(pfilters, kfilters))
+    self.assertEqual(True, record.matches_filters(pfilters))
 
     """ key filter with property fail """
     pfilters = [('a', '=', 'badtest')]
-    kfilters = [(('ABC', 1), ('BCD', 2))]
-    self.assertEqual(False, record.matches_filters(pfilters, kfilters))
-
-    """ key filter failure with good property filter """
-    pfilters = [('a', '=', 'test')]
-    kfilters = [(('ABC', 1), ('BCD', 3))]
-    self.assertEqual(False, record.matches_filters(pfilters, kfilters))
+    self.assertEqual(False, record.matches_filters(pfilters))
 

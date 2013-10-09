@@ -82,7 +82,7 @@ class DatastoreRecord(object):
     else:
       return val
 
-  def matches_filters(self, property_filters, key_filters=None):
+  def matches_filters(self, property_filters):
     """
     Processes a filter list to determine if given record matches all the filters
 
@@ -103,16 +103,9 @@ class DatastoreRecord(object):
           Currently only '=' (equalty) is supported.
         - value: an arbitrary value that will be matched against the value
           provided by `getattr(record, attr_name)`
-      - key_filters (iterable) List of tuples formated in the following way:
-        (Model name, Value). Key filters are processed left to right, meaning that
-        the order of key filters provided does matter. In only one key filter is provided
-        it is evaluated against the left most pair of the key and so on.
     """
-    if property_filters is None and key_filters is None:
+    if property_filters is None:
       return True
-
-    if not self.matches_key_filters(key_filters):
-      return False
 
     if not self.matches_property_filters(property_filters):
       return False
@@ -243,8 +236,7 @@ def record_map(datastore_record):
 
   record = DatastoreRecord(datastore_record)
   map_rule = record.match_rule(property_map)
-  if map_rule and record.matches_filters(map_rule.get("property_filters"),
-      map_rule.get("key_filters")):
+  if map_rule and record.matches_filters(map_rule.get("property_filters")):
     row = record.pick_properties(map_rule["property_list"])
     if any(row):
       yield (to_csv(row))

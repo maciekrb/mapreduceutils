@@ -13,10 +13,6 @@ class PropertyMap(object):
   def __init__(self):
     self._rulesets = OrderedDict()
 
-  def match_rule(self):
-    """ @TODO Rule matching logic should be placed here """
-    pass
-
   def add_model_ruleset(self, name, ruleset):
     """
     Adds a rulset to the property map
@@ -41,7 +37,10 @@ class PropertyMap(object):
     return self._rulesets.get(name)
 
   def to_dict(self):
-    """ Redefined in subclass concrete implementations """
+    """
+    Returns a dictionary representation of PropertyMap rules
+    """
+
     return [ rule.to_dict() for rule in self._rulesets.values() ]
 
 class KeyModelMatchRule(object):
@@ -88,7 +87,8 @@ class ModelRuleSet(object):
     self._model_match_property_rules = []
     self._property_list = []
     self._modifier_groups = {}
-    self._filters = []
+    self._property_filters = []
+    self._key_filters = []
 
   def set_key_rule(self, path):
     """
@@ -104,9 +104,6 @@ class ModelRuleSet(object):
   def get_key_rule(self):
     """ Retrieves the Key rule that will be used to match records """
     return self._model_match_key_rule
-
-  def add_filter(self, filter):
-    pass
 
   def add_model_property(self, attr_name):
     """
@@ -148,9 +145,33 @@ class ModelRuleSet(object):
     if mod not in self._modifier_groups[group]:
       self._modifier_groups[group].append(mod)
 
+  def add_property_filter(self, attr_name, operation, value ):
+    """
+    Adds filters that only include records matching the given rules
+
+    Property filters allow an additional filtering mechanism to match rules. The
+    filters allow to provide more specific mechanisms of filtering records, as they
+    will only generate the records that match all the filters.
+
+    Args:
+      - attr_name: (str) name of the model property that will be tested
+      - operation: (str) the operation that will be tested. Currenty supported
+        operations are "=", "<", ">" and "IN".
+    """
+    if operation not in ["=", "<", ">", "IN"]:
+      raise ValueError("The operation {} is not supported in property filters".format(operation))
+
+    flt = (attr_name, operation, value)
+    if flt not in self._property_filters:
+      self._property_filters.append(flt)
+
   @property
-  def filters(self):
-    pass
+  def property_filters(self):
+    return self._property_filters
+
+  @property
+  def key_filters(self):
+    return self._key_filters
 
   @property
   def model_match_rule(self):
@@ -171,16 +192,19 @@ class ModelRuleSet(object):
     """
     Returns a dictionary representation of a DataMap
     """
-    property_map = dict()
+
+    property_map = dict(property_list=self.property_list)
+
     rules = self.model_match_rule
     if rules:
       property_map["model_match_rule"] = rules
 
-    filters = self.filters
-    if filters:
-      property_map["filters"] = filters
+    if self._property_filters:
+      property_map["property_filters"] = self._property_filters
 
-    property_map['property_list'] = self.property_list
+    if self._key_filters:
+      property_map["key_filters"] = self._key_filters
+
     return property_map
 
 
