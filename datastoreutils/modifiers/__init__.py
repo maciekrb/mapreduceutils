@@ -73,17 +73,21 @@ class FieldModifier(object):
     }
 
   @classmethod
-  def from_qualified_name(cls, qualified_name, constructor_args=None, prefix=''):
+  def from_qualified_name(cls, qualified_name, constructor_args={}, prefix=''):
     """
-    Evaluates a qualified name in order to get a Modifier class
+    Evaluates a qualified name in order to get a Modifier class or instance
 
+    If the qualified name exists, and the constructor arguments are provided,
+    an instance of the FieldModifer is returned. If no constructor args are provided
+    the class is returned instead
     Args:
       - record (db.Model or ndb.Model) Datastore Entity instance
       - qualified_name (str) string with a qualified name to evaluate
       - args (dict) dictionary of keyword args to use for evaluation
 
     Returns:
-      mixed type value for column attribute
+      A class or an instance of the FieldModifier specified by the qualified name and
+      prefix.
 
     """
     path = "{prefix}.{qn}".format(prefix=prefix, qn=qualified_name) if prefix else qualified_name
@@ -91,7 +95,10 @@ class FieldModifier(object):
     if not issubclass(class_obj, cls):
       raise ValueError("Name {} does not resolve into a FieldModifier class".format(path))
 
-    return class_obj(**constructor_args)
+    if constructor_args:
+      return class_obj(**constructor_args)
+    else:
+      return class_obj
 
   @classmethod
   def from_dict(cls, definition):
