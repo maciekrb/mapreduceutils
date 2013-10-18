@@ -176,6 +176,8 @@ class TestPropertyMap(unittest.TestCase):
     rset2 = ModelRuleSet()
     path = db.Key.from_path('ABC', 1, 'BCD', 30)
     rset2.set_key_rule(path)
+    rset2.add_key_filter([('ABC', 1), ('BCD', 1)])
+    rset2.add_key_filter(ndb.Key('ABC', 1, 'BCD', 3))
     rset2.add_property_filter("property_something","=", 3)
     rset2.add_property_filter("property_something_else","IN", ["a","b"])
     rset2.add_model_property("property_m")
@@ -203,6 +205,10 @@ class TestPropertyMap(unittest.TestCase):
       "property_list": [
         "property_m",
         "property_a"
+      ],
+      "key_filters": [
+        (('ABC', 1), ('BCD', 1)),
+        (('ABC', 1), ('BCD', 3))
       ],
       "property_filters": [
         ("property_something", "=", 3),

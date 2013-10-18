@@ -82,15 +82,13 @@ class DatastoreRecord(object):
     else:
       return val
 
-  def matches_filters(self, property_filters):
+  def matches_filters(self, property_filters=None, key_filters=None):
     """
     Processes a filter list to determine if given record matches all the filters
 
     Provides an additional filtering mechanism so filters can be applied to a model
-    matching model_match_rule.
-
-    If you need global filters (that match all records), you are better off
-    using native mapreduce filters.
+    matching model_match_rule and thus generate a subset of records matched by the
+    match rule.
 
     If key_filters are defined, these are processed before property filters.
 
@@ -103,9 +101,22 @@ class DatastoreRecord(object):
           Currently only '=' (equalty) is supported.
         - value: an arbitrary value that will be matched against the value
           provided by `getattr(record, attr_name)`
+
+      - key_filters (iterable) List of lists of tuples formated in the following way:
+        (Model name, Value).  Items in the list are considered paths conformed by the tuples
+        they contain. Paths are processed left to right, ((ModelA, 1), (ModelB, 1)) will generate
+        all records matching the key at the leftmost position ej:
+        ((ModelA, 1), (ModelB,1), (ModelC, 3)), in general ((ModelA, 1), (ModelB,1), *).
+
+        Every item of the list is considered a path, and evaluated as OR rule, if any path matches
+        the record is generated.
+
     """
-    if property_filters is None:
+    if property_filters is None and key_filters is None:
       return True
+
+    if not self.matches_key_filters(key_filters):
+      return False
 
     if not self.matches_property_filters(property_filters):
       return False
@@ -236,7 +247,9 @@ def record_map(datastore_record):
 
   record = DatastoreRecord(datastore_record)
   map_rule = record.match_rule(property_map)
-  if map_rule and record.matches_filters(map_rule.get("property_filters")):
+  if map_rule and record.matches_filters(
+      property_filters=map_rule.get("property_filters"),
+      key_filters=map_rule.get("key_filters")):
     row = record.pick_properties(map_rule["property_list"])
     if any(row):
       yield (to_csv(row))

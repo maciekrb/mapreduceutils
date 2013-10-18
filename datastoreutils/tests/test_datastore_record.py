@@ -275,17 +275,31 @@ class TestDatastoreRecordFilters(unittest.TestCase):
     key = db.Key.from_path('ABC', 1, 'BCD', 2, 'SampleDbModel', 3)
     record = DatastoreRecord(SampleDbModel(key=key, a="test", b=123))
 
-    """ empty filter success """
+    """ key only filter success """
     pfilters = {}
-    self.assertEqual(True, record.matches_filters(pfilters))
+    kfilters = [(('ABC', 1), ('BCD', 2))]
+    self.assertEqual(True, record.matches_filters(pfilters, kfilters))
+
+    """ key only filter fail """
+    pfilters = {}
+    kfilters = [(('ABC', 1), ('BCE', 2))]
+    self.assertEqual(False, record.matches_filters(pfilters, kfilters))
 
     """ key filter with property success """
     pfilters = [('a', '=', 'test')]
-    self.assertEqual(True, record.matches_filters(pfilters))
+    kfilters = [(('ABC', 1), ('BCD', 2))]
+    self.assertEqual(True, record.matches_filters(pfilters, kfilters))
 
     """ key filter with property fail """
     pfilters = [('a', '=', 'badtest')]
-    self.assertEqual(False, record.matches_filters(pfilters))
+    kfilters = [(('ABC', 1), ('BCD', 2))]
+    self.assertEqual(False, record.matches_filters(pfilters, kfilters))
+
+    """ key filter failure with good property filter """
+    pfilters = [('a', '=', 'test')]
+    kfilters = [(('ABC', 1), ('BCD', 3))]
+    self.assertEqual(False, record.matches_filters(pfilters, kfilters))
+
 
   def test_ndb_filters_match(self):
     """ Combinations of ndb.Model key_filters and property filters match """
@@ -293,15 +307,45 @@ class TestDatastoreRecordFilters(unittest.TestCase):
     key = ndb.Key('ABC', 1, 'BCD', 2, 'SampleNDBModel', 3)
     record = DatastoreRecord(SampleNDBModel(key=key, a="test", b=123))
 
-    """ empty filter success """
+    """ key only filter success """
     pfilters = {}
-    self.assertEqual(True, record.matches_filters(pfilters))
+    kfilters = [(('ABC', 1), ('BCD', 2))]
+    self.assertEqual(True, record.matches_filters(pfilters, kfilters))
 
-    """  property filter success """
+    """ key only filter fail """
+    pfilters = {}
+    kfilters = [(('ABC', 1), ('BCE', 2))]
+    self.assertEqual(False, record.matches_filters(pfilters, kfilters))
+
+
+    """  key filter with property success """
     pfilters = [('a', '=', 'test')]
-    self.assertEqual(True, record.matches_filters(pfilters))
+    kfilters = [(('ABC', 1), ('BCD', 2))]
+    self.assertEqual(True, record.matches_filters(pfilters, kfilters))
 
     """ key filter with property fail """
     pfilters = [('a', '=', 'badtest')]
-    self.assertEqual(False, record.matches_filters(pfilters))
+    kfilters = [(('ABC', 1), ('BCD', 2))]
+    self.assertEqual(False, record.matches_filters(pfilters, kfilters))
+
+    """ key filter failure with good property filter """
+    pfilters = [('a', '=', 'test')]
+    kfilters = [(('ABC', 1), ('BCD', 3))]
+    self.assertEqual(False, record.matches_filters(pfilters, kfilters))
+
+  def test_filters_OR_match(self):
+    """ ModelRuleSet filters OR logic works """
+
+    key = ndb.Key('ABC', 1, 'BCD', 2, 'SampleNDBModel', 3)
+    record = DatastoreRecord(SampleNDBModel(key=key, a="test", b=123))
+
+    """ one key match """
+    pfilters = {}
+    kfilters = [(('ABC', 1), ('BCD', 2)), (('ABC', 2), ('EJC', 3))]
+    self.assertEqual(True, record.matches_filters(pfilters, kfilters))
+
+    """ no key match  """
+    pfilters = {}
+    kfilters = [(('ABEC', 1), ('BCD', 2)), (('ABC', 2), ('EJC', 3))]
+    self.assertEqual(False, record.matches_filters(pfilters, kfilters))
 

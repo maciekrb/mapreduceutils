@@ -7,6 +7,7 @@ be generated over db.Model ndb.Model objects
 """
 from google.appengine.ext import db, ndb
 from collections import OrderedDict
+from utils import parse_model_path
 
 class PropertyMap(object):
 
@@ -57,16 +58,7 @@ class KeyModelMatchRule(object):
         i.e: (Model, id) or (Model, name). This would normally be the key of the
         parent of the records you would like to match with the rule.
     """
-    self._rule = None
-
-    if isinstance(path, ndb.Key):
-      self._rule = path.pairs()
-    elif isinstance(path, db.Key):
-      self._rule = ndb.Key.from_old_key(path).pairs()
-    elif all(isinstance(p, (tuple, list)) for p in path):
-      self._rule = tuple(path)
-    else:
-      raise ValueError("Path should be a list of tuples (Model, id/name): {}".format(path))
+    self._rule = parse_model_path(path)
 
   def rule(self):
     return self._rule
@@ -168,6 +160,11 @@ class ModelRuleSet(object):
   @property
   def property_filters(self):
     return self._property_filters
+
+  def add_key_filter(self, path):
+    pairs = parse_model_path(path)
+    if pairs not in self._key_filters:
+      self._key_filters.append(pairs)
 
   @property
   def key_filters(self):
