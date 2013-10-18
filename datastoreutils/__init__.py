@@ -146,6 +146,10 @@ class DatastoreRecord(object):
 
   def matches_property_filters(self, property_filters):
     """ Verifies if property filters match """
+
+    if not property_filters:
+      return True
+
     for rule in property_filters:
       attr, oper, cmp_value = rule
       oper = str(oper)
