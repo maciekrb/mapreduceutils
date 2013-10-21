@@ -9,6 +9,7 @@ from google.appengine.ext import db, ndb
 from collections import OrderedDict
 from utils import parse_model_path
 
+
 class PropertyMap(object):
 
   def __init__(self):
@@ -37,12 +38,16 @@ class PropertyMap(object):
     """
     return self._rulesets.get(name)
 
+  def delete_model_ruleset(self, name):
+    return self._rulesets.pop(name)
+
   def to_dict(self):
     """
     Returns a dictionary representation of PropertyMap rules
     """
 
-    return [ rule.to_dict() for rule in self._rulesets.values() ]
+    return [rule.to_dict() for rule in self._rulesets.values()]
+
 
 class KeyModelMatchRule(object):
   """
@@ -63,11 +68,13 @@ class KeyModelMatchRule(object):
   def rule(self):
     return self._rule
 
+
 class PropertyModelMatchRule(object):
 
   def rule(self):
     #@TODO: Implement PropertyModelMatchRule
     raise NotImplemented("PropertyModelMatchRule must be implemented !!")
+
 
 class ModelRuleSet(object):
   """
@@ -137,7 +144,7 @@ class ModelRuleSet(object):
     if mod not in self._modifier_groups[group]:
       self._modifier_groups[group].append(mod)
 
-  def add_property_filter(self, attr_name, operation, value ):
+  def add_property_filter(self, attr_name, operation, value):
     """
     Adds filters that only include records matching the given rules
 
@@ -177,7 +184,7 @@ class ModelRuleSet(object):
       rule["key"] = self._model_match_key_rule.rule()
 
     if self._model_match_property_rules:
-      rule['properties'] = [ r.rule() for r in self._model_match_property_rules ]
+      rule['properties'] = [r.rule() for r in self._model_match_property_rules]
 
     return rule
 
