@@ -25,9 +25,13 @@ class FieldModifier(object):
     pass
 
   def get_argument(self, name, default=None):
+    """ Retrieves a registred argument by it's name """
+
     return self.arguments.get(name, default)
 
   def get_operand(self, name):
+    """ retrieves a registered operand by it's name """
+
     prefix, attr_name = self.operands[name].split('.')
     if prefix == 'model':
       return getattr(self.record, attr_name)
@@ -102,6 +106,18 @@ class FieldModifier(object):
 
   @classmethod
   def from_dict(cls, definition):
+    """
+    Instances a FieldModifier from a dict definition
+
+    Args:
+      - definition: (dict) containing the following keys:
+        - method: (str) qualified name of the concrete modifier
+        (datastoreutils.primitives.DateFormatModifier)
+        - operands: (dict) optional dictionary of operands
+        - args: (dict) optional dictionary of arguments
+    Returns:
+      An instance of the concrete FileModifier i.e DateModifier
+    """
 
     args = {
       'identifier': definition['identifier'],

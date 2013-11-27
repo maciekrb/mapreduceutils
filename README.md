@@ -193,9 +193,9 @@ property_map = [
     "property_list": [
       "attr1",
       [{
-        "method": "datastoreutils.DateModifier",
+        "method": "datastoreutils.primitives.DateFormatModifier",
         "identifier": "some_name_for_chaining",
-        "operands": {"date" : "model.attr2"},
+        "operands": {"value" : "model.attr2"},
         "args": {"date_format": "%m"}
       }],
       "expando1",
@@ -208,9 +208,9 @@ property_map = [
     "property_list": [
       "attr1",
       [{
-        "method": "datastoreutils.DateModifier",
+        "method": "datastoreutils.primitives.DateFormatModifier",
         "identifier": "some_name_for_chaining",
-        "operands": {"date" : "model.attr2"},
+        "operands": {"value" : "model.attr2"},
         "args": {"date_format": "%m"}
       }],
       "expando9"
@@ -223,9 +223,9 @@ property_map = [
     "property_list": [
       "attr1",
       [{
-        "method": "datastoreutils.DateModifier",
+        "method": "datastoreutils.modifiers.primitives.DateFormatModifier",
         "identifier": "some_name_for_chaining",
-        "operands": {"date" : "model.attr2"},
+        "operands": {"value" : "model.attr2"},
         "args": {"date_format": "%m"}
       }],
       "more_expando_fun"
@@ -265,15 +265,15 @@ This illustrates how to chain modifiers:
     "property_list": [
       "attr1",
       [{
-        "method": "datastoreutils.TimeZoneModifier",
+        "method": "datastoreutils.modifiers.primitives.TimeZoneModifier",
         "identifier": "name_op_1",
-        "operands": {"date" : "model.attr2"},
+        "operands": {"value" : "model.attr2"},
         "args": {"timezone": "Africa/Maseru"}
       },
       {
-        "method": "datastoreutils.DateModifier",
+        "method": "datastoreutils.modifiers.primitieves.DateFormatModifier",
         "identifier": "name_op_2",
-        "operands": {"date" : "identifier.name_op_1"},
+        "operands": {"value" : "identifier.name_op_1"},
         "args": {"date_format": "%m"}
       }],
       "more_expando_fun"
