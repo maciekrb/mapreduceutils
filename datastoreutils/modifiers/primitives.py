@@ -48,6 +48,7 @@ class DateFormatModifier(FieldModifier):
     f = getattr(self.get_operand('value'), 'strftime')
     return f(date_format)
 
+
 class CoerceToDateModifier(FieldModifier):
   """ Coerces a string into a datetime object """
 
@@ -87,6 +88,7 @@ class CoerceToDateModifier(FieldModifier):
     finally:
       return value
 
+
 class DateAddModifier(FieldModifier):
   """ Adds two dates """
 
@@ -114,6 +116,7 @@ class DateAddModifier(FieldModifier):
       return "value is not a date/datetime object"
 
     return value + datetime.timedelta(seconds=self.get_argument('seconds'))
+
 
 class DateSubstractModifier(FieldModifier):
   META_NAME = 'Date substraction'
@@ -158,7 +161,7 @@ class DateSubstractModifier(FieldModifier):
     absolute = self.get_argument('absolute_value')
 
     res = minuend - subtrahend
-    secs = res.days*86400 + res.seconds
+    secs = res.days * 86400 + res.seconds
 
     if output == 'years':
       out = float(secs) / 31536000.0
@@ -171,7 +174,8 @@ class DateSubstractModifier(FieldModifier):
     elif output == 'seconds':
       out = secs
 
-    return abs(out) if absolute == True else out
+    return abs(out) if absolute is True else out
+
 
 class ConstantValueModifier(FieldModifier):
   """ Allows to generate a constant value """
@@ -212,6 +216,7 @@ class ConstantValueModifier(FieldModifier):
     except ValueError as e:
       return e.message
 
+
 class CoerceToNumberModifier(FieldModifier):
   """ Coerces a string/float into an int, so operations can be performed with values """
 
@@ -243,10 +248,10 @@ class CoerceToNumberModifier(FieldModifier):
 
     try:
       if isinstance(number, float):
-        out = int(number) if  out_type == "int" else number
+        out = int(number) if out_type == "int" else number
 
       if isinstance(number, int):
-        out = float(number) if  out_type == "float" else number
+        out = float(number) if out_type == "float" else number
 
       if isinstance(number, basestring):
         if out_type == "int":
@@ -259,6 +264,7 @@ class CoerceToNumberModifier(FieldModifier):
 
     finally:
       return out
+
 
 class RoundNumberModifier(FieldModifier):
   """ Rounds a decimal value """
@@ -285,6 +291,7 @@ class RoundNumberModifier(FieldModifier):
     number = self.get_operand('value')
     return round(number, ndigits)
 
+
 class FloorNumberModifier(FieldModifier):
   """ Performs floor() on value """
 
@@ -302,6 +309,7 @@ class FloorNumberModifier(FieldModifier):
   def _evaluate(self):
     number = self.get_operand('value')
     return floor(number)
+
 
 class CeilNumberModifier(FieldModifier):
   """ Performs ceil() on value """
@@ -321,3 +329,164 @@ class CeilNumberModifier(FieldModifier):
     number = self.get_operand('value')
     return ceil(number)
 
+
+class BooleanLogicModifier(FieldModifier):
+  """ Performs Boolean logic evaluation on terms """
+  META_NAME = "Evaluate Boolean expression"
+  META_DESCRIPTION = "Evaluates a boolean logic operation between two operands"
+  META_OPERANDS = {
+    "x": {
+      "name": "X Term",
+      "description": "First term of expression",
+      "valid_types": [bool]
+    },
+    "y": {
+      "name": "Y Term",
+      "description": "Second term of expression",
+      "valid_types": [bool]
+    }
+  }
+  META_ARGS = {
+    "operation": {
+      "name": "Operation to perform",
+      "description": "Logical operation to be performed on operands x & y",
+      "type": basestring,
+      "options": {
+        "AND" : "Boolean AND",
+        "OR" : "Boolean OR"
+      }
+    },
+    "true_value": {
+      "name": "True value",
+      "description": "Value to generate if expression evals True",
+      "type": basestring
+    },
+    "false_value": {
+      "name": "False value",
+      "description": "Value to generate if expression evals False",
+      "type": basestring
+    }
+  }
+
+  def _evaluate(self):
+    op = self.get_argument('operation').upper()
+
+    if op == 'AND':
+      if self.get_operand('x') and self.get_operand('y'):
+        return self.get_argument('true_value')
+      else:
+        return self.get_argument('false_value')
+    elif op == 'OR':
+      if self.get_operand('x') or self.get_operand('y'):
+        return self.get_argument('true_value')
+      else:
+        return self.get_argument('false_value')
+
+
+class TextMatchModifier(FieldModifier):
+  """ Performs basic text matching """
+  META_NAME = "Match text"
+  META_DESCRIPTION = "Performs basic text matching"
+  META_OPERANDS = {
+    "value": {
+      "name": "Text value",
+      "description": "Full text upon which matching will be attempted",
+      "valid_types": [basestring]
+    }
+  }
+  META_ARGS = {
+    "operation": {
+      "name": "Operation to perform",
+      "description": "Type of match to perform",
+      "type": basestring,
+      "options": {
+        "starts": "Starts with",
+        "contains": "Contains",
+        "ends": "Ends with",
+      }
+    },
+    "needle": {
+      "name": "Text to match",
+      "description": "Text to match in value",
+      "type": basestring
+    },
+    "true_value": {
+      "name": "True value",
+      "description": "Optional value to generate if match evals true, boolean True by default",
+      "type": basestring
+    },
+    "false_value": {
+      "name": "False value",
+      "description": "Optional value to generate if expression evals False, boolean False by default",
+      "type": basestring
+    }
+  }
+
+  def _evaluate(self):
+    op = self.get_argument('operation')
+    needle = self.get_argument('needle')
+    haystack = self.get_operand('value')
+    trueval = self.get_argument('true_value', True)
+    falseval = self.get_argument('false_value', False)
+
+    if op == 'starts':
+      return trueval if haystack.startswith(needle) else falseval
+    elif op == 'ends':
+      return trueval if haystack.endswith(needle) else falseval
+    else:
+      try:
+        haystack.index(needle)
+        return trueval
+      except ValueError:
+        return falseval
+
+
+class ArithmeticModifier(FieldModifier):
+  """ Performs Basic arithmetic operation on terms """
+
+  META_NAME = "Evaluate basic arithmetic expression"
+  META_DESCRIPTION = "Evaluates basic arithmetic operations between two operands"
+  META_OPERANDS = {
+    "x": {
+      "name": "X Term",
+      "description": "First term of expression",
+      "valid_types": [int, float]
+    },
+    "y": {
+      "name": "Y Term",
+      "description": "Second term of expression",
+      "valid_types": [int, float]
+    }
+  }
+  META_ARGS = {
+    "operation": {
+      "name": "Operation to perform",
+      "description": "Arithmetic operation to be performed on operands x & y",
+      "type": basestring,
+      "options": {
+        "add" : "Add",
+        "substract": "Substract",
+        "multiply": "Multiply",
+        "divide": "Divide",
+        "modulo": "Modulo"
+      }
+    }
+  }
+
+  def _evaluate(self):
+    op = self.get_argument('operation').lower()
+
+    if op == 'add':
+      return self.get_operand('x') + self.get_operand('y')
+
+    elif op == 'substract':
+      return self.get_operand('x') - self.get_operand('y')
+
+    elif op == 'multiply':
+      return self.get_operand('x') * self.get_operand('y')
+
+    elif op == 'divide':
+      return self.get_operand('x') / self.get_operand('y')
+
+    elif op == 'modulo':
+      return self.get_operand('x') % self.get_operand('y')

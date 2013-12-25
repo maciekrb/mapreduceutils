@@ -5,6 +5,7 @@ from datastoreutils.modifiers import primitives
 class Record(object):
   pass
 
+
 class TestDateFormatModifier(unittest.TestCase):
 
   def test_consistent_to_dict_module(self):
@@ -15,10 +16,14 @@ class TestDateFormatModifier(unittest.TestCase):
         operands={"value": "model.created_time"},
         arguments={"date_format": "%Y"}
     )
-    self.assertEqual('datastoreutils.modifiers.primitives.DateFormatModifier', modifier.to_dict()['method'])
+    self.assertEqual(
+      'datastoreutils.modifiers.primitives.DateFormatModifier',
+      modifier.to_dict()['method']
+    )
 
   def test_datetime_conversion(self):
-    """ DateFormatModifier returns consistent values with strftime args on datetime objects """
+    """ DateFormatModifier returns consistent values with strftime
+        args on datetime objects """
 
     chain = {}
     record = Record()
@@ -70,7 +75,8 @@ class TestDateFormatModifier(unittest.TestCase):
     self.assertEqual('2010-10-03', chain['xxxx001'])
 
   def test_date_conversion(self):
-    """ DateFormatModifier returns consistent values with strftime args on date objects """
+    """ DateFormatModifier returns consistent values with
+        strftime args on date objects """
 
     chain = {}
     record = Record()
@@ -124,7 +130,8 @@ class TestDateFormatModifier(unittest.TestCase):
 
 class TestCoerceToDateModifier(unittest.TestCase):
   def test_string_dates_coertion(self):
-    """ CoerceToDateModifier converts distinct string formats to dates and datetimes """
+    """ CoerceToDateModifier converts distinct string formats
+        to dates and datetimes """
 
     chain = {}
     record = Record()
@@ -139,7 +146,7 @@ class TestCoerceToDateModifier(unittest.TestCase):
         arguments={"input_format": "%Y-%m-%d"}
     )
 
-    test_date = datetime.datetime(2010,2,9,0,0)
+    test_date = datetime.datetime(2010, 2, 9, 0, 0)
     modifier.eval(record, chain)
     self.assertIsInstance(chain['xxxx001'], datetime.date)
     self.assertEqual(test_date, chain['xxxx001'])
@@ -169,10 +176,11 @@ class TestCoerceToDateModifier(unittest.TestCase):
     )
     modifier.eval(record, chain)
     self.assertIsInstance(chain['xxxx001'], datetime.date)
-    self.assertEqual(datetime.datetime(2010,9,2,10,20), chain['xxxx001'])
+    self.assertEqual(datetime.datetime(2010, 9, 2, 10, 20), chain['xxxx001'])
 
   def test_bad_values_get_caught(self):
-    """ CoerceToDateModifier generates an error on bad date values """
+    """ CoerceToDateModifier generates an error on
+        bad date values """
 
     chain = {}
     record = Record()
@@ -185,7 +193,11 @@ class TestCoerceToDateModifier(unittest.TestCase):
     )
     modifier.eval(record, chain)
     self.assertIsInstance(chain['xxxx001'], basestring)
-    self.assertEqual("time data '2010-22-09' does not match format '%Y-%m-%d'", chain['xxxx001'])
+    self.assertEqual(
+      "time data '2010-22-09' does not match format '%Y-%m-%d'",
+      chain['xxxx001']
+    )
+
 
 class TestDateAddModifier(unittest.TestCase):
   def test_add_to_datetime(self):
@@ -193,7 +205,7 @@ class TestDateAddModifier(unittest.TestCase):
 
     chain = {}
     record = Record()
-    record.date1 = datetime.datetime(2010,1,1,0,0)
+    record.date1 = datetime.datetime(2010, 1, 1, 0, 0)
 
     modifier = primitives.DateAddModifier(
         identifier='xxxx001',
@@ -201,7 +213,7 @@ class TestDateAddModifier(unittest.TestCase):
         arguments={"seconds": 86400}
     )
     modifier.eval(record, chain)
-    self.assertEqual(datetime.datetime(2010,1,2,0,0), chain['xxxx001'])
+    self.assertEqual(datetime.datetime(2010, 1, 2, 0, 0), chain['xxxx001'])
 
     modifier = primitives.DateAddModifier(
         identifier='xxxx001',
@@ -209,14 +221,14 @@ class TestDateAddModifier(unittest.TestCase):
         arguments={"seconds": 86940}
     )
     modifier.eval(record, chain)
-    self.assertEqual(datetime.datetime(2010,1,2,0,9), chain['xxxx001'])
+    self.assertEqual(datetime.datetime(2010, 1, 2, 0, 9), chain['xxxx001'])
 
   def test_add_to_date(self):
     """ DateAddModifier can add seconds to date objects"""
 
     chain = {}
     record = Record()
-    record.date1 = datetime.date(2010,1,1)
+    record.date1 = datetime.date(2010, 1, 1)
 
     modifier = primitives.DateAddModifier(
         identifier='xxxx001',
@@ -224,7 +236,7 @@ class TestDateAddModifier(unittest.TestCase):
         arguments={"seconds": 86400}
     )
     modifier.eval(record, chain)
-    self.assertEqual(datetime.date(2010,1,2), chain['xxxx001'])
+    self.assertEqual(datetime.date(2010, 1, 2), chain['xxxx001'])
 
     modifier = primitives.DateAddModifier(
         identifier='xxxx001',
@@ -232,7 +244,7 @@ class TestDateAddModifier(unittest.TestCase):
         arguments={"seconds": 86940}
     )
     modifier.eval(record, chain)
-    self.assertEqual(datetime.date(2010,1,2), chain['xxxx001'])
+    self.assertEqual(datetime.date(2010, 1, 2), chain['xxxx001'])
 
 
 class TestDateSubstractModifier(unittest.TestCase):
@@ -241,8 +253,8 @@ class TestDateSubstractModifier(unittest.TestCase):
 
     chain = {}
     record = Record()
-    record.date1 = datetime.date(2010,1,1)
-    record.date2 = datetime.date(2010,2,1)
+    record.date1 = datetime.date(2010, 1, 1)
+    record.date2 = datetime.date(2010, 2, 1)
 
     modifier = primitives.DateSubstractModifier(
         identifier='xxxx001',
@@ -257,8 +269,8 @@ class TestDateSubstractModifier(unittest.TestCase):
 
     chain = {}
     record = Record()
-    record.date1 = datetime.date(2010,1,1)
-    record.date2 = datetime.date(2010,2,1)
+    record.date1 = datetime.date(2010, 1, 1)
+    record.date2 = datetime.date(2010, 2, 1)
 
     modifier = primitives.DateSubstractModifier(
         identifier='xxxx001',
@@ -273,8 +285,8 @@ class TestDateSubstractModifier(unittest.TestCase):
 
     chain = {}
     record = Record()
-    record.date1 = datetime.date(2010,1,1)
-    record.date2 = datetime.date(2010,2,1)
+    record.date1 = datetime.date(2010, 1, 1)
+    record.date2 = datetime.date(2010, 2, 1)
 
     modifier = primitives.DateSubstractModifier(
         identifier='xxxx001',
@@ -289,8 +301,8 @@ class TestDateSubstractModifier(unittest.TestCase):
 
     chain = {}
     record = Record()
-    record.date1 = datetime.date(2010,1,1)
-    record.date2 = datetime.date(2010,2,1)
+    record.date1 = datetime.date(2010, 1, 1)
+    record.date2 = datetime.date(2010, 2, 1)
 
     modifier = primitives.DateSubstractModifier(
         identifier='xxxx001',
@@ -305,8 +317,8 @@ class TestDateSubstractModifier(unittest.TestCase):
 
     chain = {}
     record = Record()
-    record.date1 = datetime.date(2010,1,1)
-    record.date2 = datetime.date(2010,2,1)
+    record.date1 = datetime.date(2010, 1, 1)
+    record.date2 = datetime.date(2010, 2, 1)
 
     modifier = primitives.DateSubstractModifier(
         identifier='xxxx001',
@@ -321,8 +333,8 @@ class TestDateSubstractModifier(unittest.TestCase):
 
     chain = {}
     record = Record()
-    record.date1 = datetime.date(2010,1,1)
-    record.date2 = datetime.date(2010,2,1)
+    record.date1 = datetime.date(2010, 1, 1)
+    record.date2 = datetime.date(2010, 2, 1)
 
     modifier = primitives.DateSubstractModifier(
         identifier='xxxx001',
@@ -337,8 +349,8 @@ class TestDateSubstractModifier(unittest.TestCase):
 
     chain = {}
     record = Record()
-    record.date1 = datetime.datetime(2010,1,1,0,0)
-    record.date2 = datetime.datetime(2010,2,1,3,20)
+    record.date1 = datetime.datetime(2010, 1, 1, 0, 0)
+    record.date2 = datetime.datetime(2010, 2, 1, 3, 20)
 
     modifier = primitives.DateSubstractModifier(
         identifier='xxxx001',
@@ -353,8 +365,8 @@ class TestDateSubstractModifier(unittest.TestCase):
 
     chain = {}
     record = Record()
-    record.date1 = datetime.date(2010,1,1)
-    record.date2 = datetime.date(2010,2,1)
+    record.date1 = datetime.date(2010, 1, 1)
+    record.date2 = datetime.date(2010, 2, 1)
 
     modifier = primitives.DateSubstractModifier(
         identifier='xxxx001',
@@ -363,6 +375,7 @@ class TestDateSubstractModifier(unittest.TestCase):
     )
     modifier.eval(record, chain)
     self.assertEqual(31, chain['xxxx001'])
+
 
 class TestCoerceToNumberModifier(unittest.TestCase):
   def test_int_or_float_from_str(self):
@@ -445,6 +458,7 @@ class TestCoerceToNumberModifier(unittest.TestCase):
     modifier.eval(record, chain)
     self.assertEqual(1.0, chain['xxxx001'])
 
+
 class TestConstantValueModifier(unittest.TestCase):
   def test_constant_int(self):
     """ ConstantValueModifier returns int values for int type constants """
@@ -498,6 +512,297 @@ class TestConstantValueModifier(unittest.TestCase):
     self.assertIsInstance(chain['xxxx001'], basestring)
     self.assertEquals('could not convert string to float: x', chain['xxxx001'])
 
+
+class TestBooleanLogicModifier(unittest.TestCase):
+  def test_eval_and_true(self):
+    """ LogicANDModifier Evaluates AND expressions to True """
+
+    chain = {'id0001': True, 'id0002': True}
+    record = Record()
+    modifier = primitives.BooleanLogicModifier(
+        identifier='xxxx001',
+        operands={"x": 'identifier.id0001', "y": 'identifier.id0002'},
+        arguments={"operation": 'AND', "true_value": 'ABC', "false_value": 'BCD'}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual('ABC', chain['xxxx001'])
+
+  def test_eval_and_false(self):
+    """ LogicANDModifier Evaluates AND expressions to False """
+
+    chain = {'id0001': True, 'id0002': False}
+    record = Record()
+    modifier = primitives.BooleanLogicModifier(
+        identifier='xxxx001',
+        operands={"x": 'identifier.id0001', "y": 'identifier.id0002'},
+        arguments={"operation": 'AND', "true_value": 'ABC', "false_value": 'BCD'}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual('BCD', chain['xxxx001'])
+
+class TestTextMatchModifier(unittest.TestCase):
+    def test_startswith_match(self):
+      """ TextMatchModifier startswith matches OK """
+
+      chain = {}
+      record = Record()
+      record.text = "The Mongoose came a long way along the river"
+      modifier = primitives.TextMatchModifier(
+        identifier="xx0001",
+        operands={"value": "model.text"},
+        arguments={"operation": "starts",
+                   "needle": "The",
+                   "true_value": "Yeah!",
+                   "false_value": "Nope!"}
+      )
+      modifier.eval(record, chain)
+      self.assertEqual('Yeah!', chain['xx0001'])
+
+    def test_startswith_nonmatch(self):
+      """ TextMatchModifier performs startswith non matches OK """
+
+      chain = {}
+      record = Record()
+      record.text = "The Mongoose came a long way along the river"
+      modifier = primitives.TextMatchModifier(
+        identifier="xx0001",
+        operands={"value": "model.text"},
+        arguments={"operation": "starts",
+                   "needle": "Mongoose",
+                   "true_value": "Yeah!",
+                   "false_value": "Nope!"}
+      )
+      modifier.eval(record, chain)
+      self.assertEqual('Nope!', chain['xx0001'])
+
+    def test_endswith_match(self):
+      """ TextMatchModifier endswith matching OK """
+
+      chain = {}
+      record = Record()
+      record.text = "The Mongoose came a long way along the river"
+      modifier = primitives.TextMatchModifier(
+        identifier="xx0001",
+        operands={"value": "model.text"},
+        arguments={"operation": "ends",
+                   "needle": "river",
+                   "true_value": "Yeah!",
+                   "false_value": "Nope!"}
+      )
+      modifier.eval(record, chain)
+      self.assertEqual('Yeah!', chain['xx0001'])
+
+    def test_endswith_nonmatch(self):
+      """ TextMatchModifier endswith non matching OK """
+
+      chain = {}
+      record = Record()
+      record.text = "The Mongoose came a long way along the river"
+      modifier = primitives.TextMatchModifier(
+        identifier="xx0001",
+        operands={"value": "model.text"},
+        arguments={"operation": "ends",
+                   "needle": "along",
+                   "true_value": "Yeah!",
+                   "false_value": "Nope!"}
+      )
+      modifier.eval(record, chain)
+      self.assertEqual('Nope!', chain['xx0001'])
+
+    def test_contains_match(self):
+      """ TextMatchModifier contains matching OK """
+
+      chain = {}
+      record = Record()
+      record.text = "The Mongoose came a long way along the river"
+      modifier = primitives.TextMatchModifier(
+        identifier="xx0001",
+        operands={"value": "model.text"},
+        arguments={"operation": "contains",
+                   "needle": "way",
+                   "true_value": "Yeah!",
+                   "false_value": "Nope!"}
+      )
+      modifier.eval(record, chain)
+      self.assertEqual('Yeah!', chain['xx0001'])
+
+    def test_contains_nonmatch(self):
+      """ TextMatchModifier contains non matching OK """
+
+      chain = {}
+      record = Record()
+      record.text = "The Mongoose came a long way along the river"
+      modifier = primitives.TextMatchModifier(
+        identifier="xx0001",
+        operands={"value": "model.text"},
+        arguments={"operation": "contains",
+                   "needle": "highway",
+                   "true_value": "Yeah!",
+                   "false_value": "Nope!"}
+      )
+      modifier.eval(record, chain)
+      self.assertEqual('Nope!', chain['xx0001'])
+
+
+class TestArithmeticModifier(unittest.TestCase):
+
+  def test_add_operation(self):
+    """ Arithmetic modifier add operation OK """
+
+    chain = {}
+    record = Record()
+    record.value_a = 3
+    record.value_b = 4
+    record.value_c = 1.0
+
+    """ Add two integers """
+    modifier = primitives.ArithmeticModifier(
+      identifier="xxx0001",
+      operands={"x": "model.value_a", "y": "model.value_b"},
+      arguments={"operation": "add"}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual(7, chain['xxx0001'])
+
+    """ Add a float and an integer """
+    modifier = primitives.ArithmeticModifier(
+      identifier="xxx0002",
+      operands={"x": "model.value_a", "y": "model.value_c"},
+      arguments={"operation": "add"}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual(4.0, chain['xxx0002'])
+
+  def test_substract_operation(self):
+    """ Arithmetic modifier substraction operation OK """
+
+    chain = {}
+    record = Record()
+    record.value_a = 3
+    record.value_b = 4
+    record.value_c = 1.0
+
+    """ Substract two integers """
+    modifier = primitives.ArithmeticModifier(
+      identifier="xxx0001",
+      operands={"x": "model.value_b", "y": "model.value_a"},
+      arguments={"operation": "substract"}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual(1, chain['xxx0001'])
+
+    """ Substract a float and an integer """
+    modifier = primitives.ArithmeticModifier(
+      identifier="xxx0002",
+      operands={"x": "model.value_b", "y": "model.value_c"},
+      arguments={"operation": "substract"}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual(3.0, chain['xxx0002'])
+
+  def test_multiply_operation(self):
+    """ Arithmetic modifier multiply operation OK """
+
+    chain = {}
+    record = Record()
+    record.value_a = 3
+    record.value_b = 4
+    record.value_c = 1.0
+
+    """ Multiply two integers """
+    modifier = primitives.ArithmeticModifier(
+      identifier="xxx0001",
+      operands={"x": "model.value_b", "y": "model.value_a"},
+      arguments={"operation": "multiply"}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual(12, chain['xxx0001'])
+
+    """ Multiply a float and an integer """
+    modifier = primitives.ArithmeticModifier(
+      identifier="xxx0002",
+      operands={"x": "model.value_b", "y": "model.value_c"},
+      arguments={"operation": "multiply"}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual(4.0, chain['xxx0002'])
+
+  def test_divide_operation(self):
+    """ Arithmetic modifier divide operation OK """
+
+    chain = {}
+    record = Record()
+    record.value_a = 3
+    record.value_b = 4
+    record.value_c = 1.0
+    record.value_d = 4.0
+    record.value_e = 3.0
+
+    """ Divide two integers """
+    modifier = primitives.ArithmeticModifier(
+      identifier="xxx0001",
+      operands={"x": "model.value_b", "y": "model.value_a"},
+      arguments={"operation": "divide"}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual(1, chain['xxx0001'])
+
+    """ Divide a float and an integer """
+    modifier = primitives.ArithmeticModifier(
+      identifier="xxx0002",
+      operands={"x": "model.value_b", "y": "model.value_c"},
+      arguments={"operation": "divide"}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual(4.0, chain['xxx0002'])
+
+    """ Divide two floats """
+    modifier = primitives.ArithmeticModifier(
+      identifier="xxx0003",
+      operands={"x": "model.value_d", "y": "model.value_e"},
+      arguments={"operation": "divide"}
+    )
+    modifier.eval(record, chain)
+    self.assertAlmostEqual(1.33333333, chain['xxx0003'])
+
+  def test_modulo_operation(self):
+    """ Arithmetic modifier modulo operation OK """
+
+    chain = {}
+    record = Record()
+    record.value_a = 3
+    record.value_b = 4
+    record.value_c = 1.0
+    record.value_d = 4.0
+    record.value_e = 3.0
+
+    """ Modulo of two integers """
+    modifier = primitives.ArithmeticModifier(
+      identifier="xxx0001",
+      operands={"x": "model.value_b", "y": "model.value_a"},
+      arguments={"operation": "modulo"}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual(1, chain['xxx0001'])
+
+    """ Modulo of a float and an integer """
+    modifier = primitives.ArithmeticModifier(
+      identifier="xxx0002",
+      operands={"x": "model.value_b", "y": "model.value_c"},
+      arguments={"operation": "modulo"}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual(0.0, chain['xxx0002'])
+
+    """ Modulo of two floats """
+    modifier = primitives.ArithmeticModifier(
+      identifier="xxx0003",
+      operands={"x": "model.value_d", "y": "model.value_e"},
+      arguments={"operation": "modulo"}
+    )
+    modifier.eval(record, chain)
+    self.assertAlmostEqual(1.0, chain['xxx0003'])
+
 if __name__ == '__main__':
   suite = unittest.TestSuite()
   suite.addTest(unittest.makeSuite(TestDateFormatModifier))
@@ -506,4 +811,7 @@ if __name__ == '__main__':
   suite.addTest(unittest.makeSuite(TestDateSubstractModifier))
   suite.addTest(unittest.makeSuite(TestConstantValueModifier))
   suite.addTest(unittest.makeSuite(TestCoerceToNumberModifier))
+  suite.addTest(unittest.makeSuite(TestBooleanLogicModifier))
+  suite.addTest(unittest.makeSuite(TestTextMatchModifier))
+  suite.addTest(unittest.makeSuite(TestArithmeticModifier))
   unittest.TextTestRunner(verbosity=2).run(suite)
