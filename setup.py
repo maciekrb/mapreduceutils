@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
   name="datastoreutils",
-  version="2.1",
+  version="2.2",
   author="Maciek Ruckgaber",
   author_email="maciekrb@gmail.com",
   description="Python mapreduce utilities for exporting / transforming Datastore entries",

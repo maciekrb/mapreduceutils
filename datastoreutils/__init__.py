@@ -84,16 +84,19 @@ class DatastoreRecord(object):
 
   def matches_filters(self, property_filters=None, key_filters=None):
     """
-    Processes a filter list to determine if given record matches all the filters
+    Processes a filter list to determine if given record matches all
+    the filters
 
-    Provides an additional filtering mechanism so filters can be applied to a model
-    matching model_match_rule and thus generate a subset of records matched by the
-    match rule.
+    Provides an additional filtering mechanism so filters can be applied
+    to a model matching model_match_rule and thus generate a subset of
+    records matched by the match rule.
 
     If key_filters are defined, these are processed before property filters.
 
     Args:
-      - property_filters (iterable) List of tuples formated in the following way:
+      - property_filters (iterable) List of tuples formated in the following
+      way:
+
         (attr_name, operation, value)
         - attr_name: (str) indicates the attribute that will be fetched
           via `getattr(record, attr_name)` from the record
@@ -102,14 +105,17 @@ class DatastoreRecord(object):
         - value: an arbitrary value that will be matched against the value
           provided by `getattr(record, attr_name)`
 
-      - key_filters (iterable) List of lists of tuples formated in the following way:
-        (Model name, Value).  Items in the list are considered paths conformed by the tuples
-        they contain. Paths are processed left to right, ((ModelA, 1), (ModelB, 1)) will generate
-        all records matching the key at the leftmost position ej:
-        ((ModelA, 1), (ModelB,1), (ModelC, 3)), in general ((ModelA, 1), (ModelB,1), *).
+      - key_filters (iterable) List of lists of tuples formated in the
+      following way:
+        (Model name, Value).  Items in the list are considered paths conformed
+        by the tuples they contain. Paths are processed left to right,
+        ((ModelA, 1), (ModelB, 1)) will generate all records matching the key
+        at the leftmost position ej:
+          ((ModelA, 1), (ModelB,1), (ModelC, 3)), in general
+          ((ModelA, 1), (ModelB,1), *).
 
-        Every item of the list is considered a path, and evaluated as OR rule, if any path matches
-        the record is generated.
+        Every item of the list is considered a path, and evaluated as OR rule,
+        if any path matches the record is generated.
 
     """
     if property_filters is None and key_filters is None:
@@ -136,7 +142,7 @@ class DatastoreRecord(object):
 
     for rule_pair in key_filters:
       chain = list()
-      for pos, r  in enumerate(rule_pair):
+      for pos, r in enumerate(rule_pair):
         chain.append(self.key_pairs[pos] == tuple(r))
 
       if all(chain):
@@ -154,6 +160,11 @@ class DatastoreRecord(object):
       attr, oper, cmp_value = rule
       oper = str(oper)
       real_value = getattr(self, attr)
+
+      # ndb.Keys can only be compared as strings
+      if isinstance(real_value, ndb.Key):
+        real_value = real_value.urlsafe()
+
       if oper == '=' and real_value != cmp_value:
         return False
       elif oper == 'IN' and real_value not in cmp_value:
@@ -230,6 +241,11 @@ class DatastoreRecord(object):
         for prop in match_rule["properties"]:
           rule_attr_name, rule_attr_value = prop
           attr_value = getattr(self, rule_attr_name)
+
+          # ndb.Keys must be compared as strings
+          if isinstance(attr_value, ndb.Key):
+            attr_value = attr_value.urlsafe()
+
           chain.append(attr_value == rule_attr_value)
         prop_match = all(chain)
       except KeyError: # Means no properties were given to match
