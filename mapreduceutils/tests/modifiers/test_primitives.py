@@ -1,6 +1,6 @@
 import unittest
 import datetime
-from datastoreutils.modifiers import primitives
+from mapreduceutils.modifiers import primitives
 
 class Record(object):
   pass
@@ -17,7 +17,7 @@ class TestDateFormatModifier(unittest.TestCase):
         arguments={"date_format": "%Y"}
     )
     self.assertEqual(
-      'datastoreutils.modifiers.primitives.DateFormatModifier',
+      'mapreduceutils.modifiers.primitives.DateFormatModifier',
       modifier.to_dict()['method']
     )
 

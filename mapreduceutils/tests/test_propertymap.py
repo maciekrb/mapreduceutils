@@ -2,7 +2,7 @@ import unittest
 from google.appengine.ext import db
 from google.appengine.ext import ndb
 from google.appengine.ext import testbed
-from datastoreutils import KeyModelMatchRule, ModelRuleSet, PropertyMap
+from mapreduceutils import KeyModelMatchRule, ModelRuleSet, PropertyMap
 
 class TestModelMatchRule(unittest.TestCase):
 
@@ -88,14 +88,14 @@ class TestModelRuleSet(unittest.TestCase):
     rset.add_model_property("property_y")
     rset.add_modifier_property(
       group="property_m",
-      method="datastoreutils.modifiers.primitives.DateFormatModifier",
+      method="mapreduceutils.modifiers.primitives.DateFormatModifier",
       identifier="xyza1",
       operands={"value": "model.some_date"},
       args={"date_format": "%W"}
     )
     rset.add_modifier_property(
       group="property_m",
-      method="datastoreutils.modifiers.primitives.BlahModifier",
+      method="mapreduceutils.modifiers.primitives.BlahModifier",
       identifier="xyza2",
       operands={"value": "model.some_date"},
       args={"date_format": "%W"}
@@ -103,7 +103,7 @@ class TestModelRuleSet(unittest.TestCase):
     rset.add_model_property("property_z")
     rset.add_modifier_property(
       group="property_bb",
-      method="datastoreutils.modifiers.primitives.BlahModifier",
+      method="mapreduceutils.modifiers.primitives.BlahModifier",
       identifier="xyza9",
       operands={"value": "model.some_date"},
       args={"date_format": "%W"}
@@ -121,20 +121,20 @@ class TestModelRuleSet(unittest.TestCase):
         "property_x",
         "property_y",
         [{
-          "method": "datastoreutils.modifiers.primitives.DateFormatModifier",
+          "method": "mapreduceutils.modifiers.primitives.DateFormatModifier",
           "identifier": "xyza1",
           "operands": {"value": "model.some_date"},
           "args": {"date_format": "%W"}
         },
         {
-          "method": "datastoreutils.modifiers.primitives.BlahModifier",
+          "method": "mapreduceutils.modifiers.primitives.BlahModifier",
           "identifier": "xyza2",
           "operands": {"value": "model.some_date"},
           "args": {"date_format": "%W"}
         }],
         "property_z",
         [{
-          "method": "datastoreutils.modifiers.primitives.BlahModifier",
+          "method": "mapreduceutils.modifiers.primitives.BlahModifier",
           "identifier": "xyza9",
           "operands": {"value": "model.some_date"},
           "args": {"date_format": "%W"}

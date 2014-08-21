@@ -1,5 +1,5 @@
 import unittest
-from datastoreutils.modifiers import FieldModifier
+from mapreduceutils.modifiers import FieldModifier
 
 class DummyFieldModifier(FieldModifier):
   META_NAME = "Test Name"
@@ -92,7 +92,7 @@ class TestFieldModifier(unittest.TestCase):
 
     definition = {
       "identifier": "xy0002",
-      "method": "datastoreutils.tests.modifiers.test_fieldmodifier.DummyFieldModifier",
+      "method": "mapreduceutils.tests.modifiers.test_fieldmodifier.DummyFieldModifier",
       "args": {
         "test_arg1": "abc",
         "test_arg2": "bcd"
@@ -120,7 +120,7 @@ class TestFieldModifier(unittest.TestCase):
 
     definition = {
       "identifier": "xy0002",
-      "method": "datastoreutils.tests.modifiers.test_fieldmodifier.DummyFieldModifier",
+      "method": "mapreduceutils.tests.modifiers.test_fieldmodifier.DummyFieldModifier",
       "args": {
         "test_arg1": "abc",
         "test_arg2": "bcd"

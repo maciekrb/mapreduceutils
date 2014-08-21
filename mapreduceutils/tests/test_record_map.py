@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import unittest
-import logging
 import datetime
+import json
 from testlib import testutil
 from google.appengine.ext import db
 from google.appengine.api import files
@@ -13,7 +12,7 @@ from mapreduce import mapreduce_pipeline
 from mapreduce import input_readers
 from mapreduce import test_support
 from mapreduce.lib import pipeline
-from datastoreutils import record_map
+
 
 def _run_pipeline(taskqueue, entity_kind, mapper_function, params={}):
   """
@@ -21,14 +20,16 @@ def _run_pipeline(taskqueue, entity_kind, mapper_function, params={}):
   containing data resulting from mapper_function
 
   Args:
-    - entity_kind: (str) sting containing the module path of the Datastore Model to read
-    - mapper_function: (str) sting containing the module path of the mapper function
+    - entity_kind: (str) sting containing the module path of the Datastore
+      Model to read.
+    - mapper_function: (str) sting containing the module path of the
+      mapper function
 
   Returns:
     - List with records resulting from the pipeline processing
   """
 
-  params["input_reader"] = { "entity_kind": entity_kind }
+  params["input_reader"] = {"entity_kind": entity_kind}
 
   # Run Mapreduce
   p = mapreduce_pipeline.MapperPipeline(
@@ -50,15 +51,23 @@ def _run_pipeline(taskqueue, entity_kind, mapper_function, params={}):
 
   return output_data
 
+
 class DummyReference(db.Expando):
   pass
 
+
 class TestRecord(db.Expando):
-  record_entry = db.ReferenceProperty(reference_class=DummyReference, collection_name="records")
+  record_entry = db.ReferenceProperty(
+    reference_class=DummyReference,
+    collection_name="records"
+  )
   tag_keys = db.ListProperty(db.Key)
   created_time = db.DateTimeProperty()
   data_quality = db.IntegerProperty(default=1)
-  schema = db.ReferenceProperty(reference_class=DummyReference, collection_name="schema_records")
+  schema = db.ReferenceProperty(
+    reference_class=DummyReference,
+    collection_name="schema_records"
+  )
   schema_name = db.StringProperty()
 
 
@@ -85,17 +94,17 @@ class DatastoreOutput(testutil.HandlerTestBase):
     # Prepare test data
     test_data = [
       {
-        "record_type" : "test_record",
-        "created_time" : datetime.datetime(2010,8,12,18,23,20),
-        "data_quality" : 3,
-        "schema_name" : u"This is á, tests string",
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2010, 8, 12, 18, 23, 20),
+        "data_quality": 3,
+        "schema_name": u"This is á, tests string",
         "expando_attr": "Some value here"
       },
       {
-        "record_type" : "test_record",
-        "created_time" : datetime.datetime(2011,9,11,19,20,21),
-        "data_quality" : 4,
-        "schema_name" : "some_schema_name",
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2011, 9, 11, 19, 20, 21),
+        "data_quality": 4,
+        "schema_name": "some_schema_name",
         "expando_attr": "Some other value here"
       }
     ]
@@ -106,11 +115,12 @@ class DatastoreOutput(testutil.HandlerTestBase):
     output_data = _run_pipeline(
       self.taskqueue,
       __name__ + ".TestRecord",
-      __name__ + ".record_map",
+      "mapreduceutils.record_map",
       params={
+        "output_format": "csv",
         "property_map": [{
           "model_match_rule": {
-            "properties" : [("record_type", "test_record")],
+            "properties": [("record_type", "test_record")],
           },
           "property_list": [
             "created_time",
@@ -125,17 +135,87 @@ class DatastoreOutput(testutil.HandlerTestBase):
     # Asset Pipeline finished
     self.assertEquals(1, len(self.emails))
     self.assertTrue(self.emails[0][1].startswith("Pipeline successful:"))
-
-    # Assert number of rows, and format of one of them. Order is not predictable
     self.assertEquals(2, len(output_data))
-    rec = output_data[0] if output_data[0].startswith('2010-') else output_data[1]
-    self.assertEquals('2010-08-12 18:23:20,3,Some value here,"This is á, tests string"\r\n', rec)
+
+    # Assert number of rows, and format of one of them.
+    # Order is not predictable
+    if output_data[0].startswith('2010-'):
+      rec = output_data[0]
+    else:
+      rec = output_data[1]
+
+    self.assertEquals(
+      '2010-08-12 18:23:20,3,Some value here,"This is á, tests string"\r\n',
+      rec
+    )
+
+  def test_map_pipeline_json_conversion(self):
+    """ Tests all records were dumped and that JSON format is consistent """
+
+    # Prepare test data
+    test_data = [
+      {
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2010, 8, 12, 18, 23, 20),
+        "data_quality": 3,
+        "schema_name": u"This is á, tests string",
+        "expando_attr": "Some value here"
+      },
+      {
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2011, 9, 11, 19, 20, 21),
+        "data_quality": 4,
+        "schema_name": "some_schema_name",
+        "expando_attr": "Some other value here"
+      }
+    ]
+
+    for r in test_data:
+      TestRecord(**r).put()
+
+    output_data = _run_pipeline(
+      self.taskqueue,
+      __name__ + ".TestRecord",
+      "mapreduceutils.record_map",
+      params={
+        "output_format": "json",
+        "property_map": [{
+          "model_match_rule": {
+            "properties": [("record_type", "test_record")],
+          },
+          "property_list": [
+            "created_time",
+            "data_quality",
+            "expando_attr",
+            "schema_name"
+          ]
+        }]
+      }
+    )
+
+    # Asset Pipeline finished
+    self.assertEquals(1, len(self.emails))
+    self.assertTrue(self.emails[0][1].startswith("Pipeline successful:"))
+    self.assertEquals(2, len(output_data))
+
+    # Assert number of rows, and format of one of them.
+    # Order is not predictable
+    unserialized = json.loads(output_data[0])
+    if unserialized['created_time'].startswith('2010-'):
+      rec = unserialized
+    else:
+      rec = json.loads(output_data[1])
+
+    self.assertEquals(rec['created_time'], u"2010-08-12 18:23:20")
+    self.assertEquals(rec['data_quality'], 3)
+    self.assertEquals(rec['expando_attr'], u"Some value here")
+    self.assertEquals(rec['schema_name'], u"This is á, tests string")
 
   def test_map_pipeline_property_map(self):
-    """ Test that only mapped properties are included in the resulting record """
+    """ Only mapped properties are included in the resulting record """
 
     record_data = {
-      "created_time" : datetime.datetime(2010,8,12,18,23,20),
+      "created_time": datetime.datetime(2010, 8, 12, 18, 23, 20),
       "data_quality": 1,
       "schema_name": u"cobertura_vegetal",
       "codigo": 3131,
@@ -158,11 +238,12 @@ class DatastoreOutput(testutil.HandlerTestBase):
     output_data = _run_pipeline(
       self.taskqueue,
       __name__ + ".TestRecord",
-      __name__ + ".record_map",
+      "mapreduceutils.record_map",
       params={
+        "output_format": "csv",
         "property_map": [{
           "model_match_rule": {
-            "properties" : [("schema_name", "cobertura_vegetal")],
+            "properties": [("schema_name", "cobertura_vegetal")],
           },
           "property_list": [
             "created_time",
@@ -178,23 +259,27 @@ class DatastoreOutput(testutil.HandlerTestBase):
     self.assertEquals(1, len(self.emails))
     self.assertTrue(self.emails[0][1].startswith("Pipeline successful:"))
 
-    # Assert number of rows, and format of one of them. Order is not predictable
+    # Assert number of rows, and format of one of them.
+    # Order is not predictable
     self.assertEquals(1, len(output_data))
-    rec = '2010-08-12 18:23:20,cobertura_vegetal,Bosques y Áreas Seminaturales,1\r\n'
+    rec = (
+      '2010-08-12 18:23:20,cobertura_vegetal,'
+      'Bosques y Áreas Seminaturales,1\r\n'
+    )
     self.assertEquals(rec, output_data[0])
 
   def test_map_pipeline_reference_property_mapping(self):
     """ Test that ReferenceProperties can be used as property_match_values """
 
     record_entry = DummyReference(context="some_context").put()
-    schema  = DummyReference(name="cobertura_vegetal").put()
+    schema = DummyReference(name="cobertura_vegetal").put()
     tag_ABC = DummyReference(name="ABC").put()
     tag_BCD = DummyReference(name="BCD").put()
 
     record_data = {
       "record_entry": record_entry,
       "tag_keys": [tag_ABC, tag_BCD],
-      "created_time" : datetime.datetime(2010,8,12,18,23,20),
+      "created_time": datetime.datetime(2010, 8, 12, 18, 23, 20),
       "data_quality": 1,
       "schema": schema,
       "schema_name": u"cobertura_vegetal",
@@ -218,11 +303,12 @@ class DatastoreOutput(testutil.HandlerTestBase):
     output_data = _run_pipeline(
       self.taskqueue,
       __name__ + ".TestRecord",
-      __name__ + ".record_map",
+      "mapreduceutils.record_map",
       params={
+        "output_format": "csv",
         "property_map": [{
           "model_match_rule": {
-            "properties" : [("schema", str(schema))],
+            "properties": [("schema", str(schema))],
           },
           "property_list": [
             "created_time",
@@ -238,9 +324,13 @@ class DatastoreOutput(testutil.HandlerTestBase):
     self.assertEquals(1, len(self.emails))
     self.assertTrue(self.emails[0][1].startswith("Pipeline successful:"))
 
-    # Assert number of rows, and format of one of them. Order is not predictable
+    # Assert number of rows, and format of one of them.
+    # Order is not predictable
     self.assertEquals(1, len(output_data))
-    rec = '2010-08-12 18:23:20,cobertura_vegetal,Bosques y Áreas Seminaturales,1\r\n'
+    rec = (
+      '2010-08-12 18:23:20,cobertura_vegetal,'
+      'Bosques y Áreas Seminaturales,1\r\n'
+    )
     self.assertEquals(rec, output_data[0])
 
   def test_map_pipeline_key_rule_filters(self):
@@ -250,34 +340,34 @@ class DatastoreOutput(testutil.HandlerTestBase):
     test_data = [
       {
         "key": db.Key.from_path('ABC', 1, 'BCD', 2, 'TestRecord', 1),
-        "record_type" : "test_record",
-        "created_time" : datetime.datetime(2010,8,12,18,23,20),
-        "data_quality" : 3,
-        "schema_name" : "This is a, tests string",
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2010, 8, 12, 18, 23, 20),
+        "data_quality": 3,
+        "schema_name": "This is a, tests string",
         "expando_attr": "GOOD_VALUE"
       },
       {
         "key": db.Key.from_path('ABC', 1, 'BCD', 2, 'TestRecord', 2),
-        "record_type" : "test_record",
-        "created_time" : datetime.datetime(2010,9,11,19,20,21),
-        "data_quality" : 4,
-        "schema_name" : "One Value",
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2010, 9, 11, 19, 20, 21),
+        "data_quality": 4,
+        "schema_name": "One Value",
         "expando_attr": "GOOD_VALUE"
       },
       {
         "key": db.Key.from_path('ABC', 2, 'BCD', 2, 'TestRecord', 2),
-        "record_type" : "test_record",
-        "created_time" : datetime.datetime(2011,9,11,19,20,21),
-        "data_quality" : 1,
-        "schema_name" : "some_schema_name",
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2011, 9, 11, 19, 20, 21),
+        "data_quality": 1,
+        "schema_name": "some_schema_name",
         "expando_attr": "BAD_VALUE"
       },
       {
         "key": db.Key.from_path('ABC', 2, 'BCD', 2, 'TestRecord', 2),
-        "record_type" : "test_record",
-        "created_time" : datetime.datetime(2011,9,11,19,20,21),
-        "data_quality" : 4,
-        "schema_name" : "some_schema_name",
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2011, 9, 11, 19, 20, 21),
+        "data_quality": 4,
+        "schema_name": "some_schema_name",
         "expando_attr": "BAD_VALUE"
       }
     ]
@@ -288,11 +378,12 @@ class DatastoreOutput(testutil.HandlerTestBase):
     output_data = _run_pipeline(
       self.taskqueue,
       __name__ + ".TestRecord",
-      __name__ + ".record_map",
+      "mapreduceutils.record_map",
       params={
+        "output_format": "csv",
         "property_map": [{
           "model_match_rule": {
-            "key" : [("ABC", 1)],
+            "key": [("ABC", 1)],
           },
           "property_list": [
             "created_time",
@@ -308,7 +399,8 @@ class DatastoreOutput(testutil.HandlerTestBase):
     self.assertEquals(1, len(self.emails))
     self.assertTrue(self.emails[0][1].startswith("Pipeline successful:"))
 
-    # Assert number of rows, and format of one of them. Order is not predictable
+    # Assert number of rows, and format of one of them.
+    # Order is not predictable
     self.assertEquals(2, len(output_data))
     self.assertRegexpMatches(output_data[0], ".+,GOOD_VALUE,.+")
     self.assertRegexpMatches(output_data[1], ".+,GOOD_VALUE,.+")
@@ -319,31 +411,31 @@ class DatastoreOutput(testutil.HandlerTestBase):
     # Prepare test data
     test_data = [
       {
-        "record_type" : "test_record",
-        "created_time" : datetime.datetime(2010,8,12,18,23,20),
-        "data_quality" : 3,
-        "schema_name" : "This is a, tests string",
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2010, 8, 12, 18, 23, 20),
+        "data_quality": 3,
+        "schema_name": "This is a, tests string",
         "expando_attr": "Some value here"
       },
       {
-        "record_type" : "test_record",
-        "created_time" : datetime.datetime(2010,9,11,19,20,21),
-        "data_quality" : 4,
-        "schema_name" : "One Value",
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2010, 9, 11, 19, 20, 21),
+        "data_quality": 4,
+        "schema_name": "One Value",
         "expando_attr": "Some other value here"
       },
       {
-        "record_type" : "test_record",
-        "created_time" : datetime.datetime(2011,9,11,19,20,21),
-        "data_quality" : 1,
-        "schema_name" : "some_schema_name",
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2011, 9, 11, 19, 20, 21),
+        "data_quality": 1,
+        "schema_name": "some_schema_name",
         "expando_attr": "Some other value here"
       },
       {
-        "record_type" : "test_record",
-        "created_time" : datetime.datetime(2011,9,11,19,20,21),
-        "data_quality" : 4,
-        "schema_name" : "some_schema_name",
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2011, 9, 11, 19, 20, 21),
+        "data_quality": 4,
+        "schema_name": "some_schema_name",
         "expando_attr": "One More Value"
       }
     ]
@@ -354,11 +446,12 @@ class DatastoreOutput(testutil.HandlerTestBase):
     output_data = _run_pipeline(
       self.taskqueue,
       __name__ + ".TestRecord",
-      __name__ + ".record_map",
+      "mapreduceutils.record_map",
       params={
+        "output_format": "csv",
         "property_map": [{
           "model_match_rule": {
-            "properties" : [("record_type", "test_record")],
+            "properties": [("record_type", "test_record")],
           },
           "property_filters": [
             ("data_quality", "=", 4)
@@ -377,10 +470,17 @@ class DatastoreOutput(testutil.HandlerTestBase):
     self.assertEquals(1, len(self.emails))
     self.assertTrue(self.emails[0][1].startswith("Pipeline successful:"))
 
-    # Assert number of rows, and format of one of them. Order is not predictable
+    # Order is not predictable
     self.assertEquals(2, len(output_data))
-    rec = output_data[0] if output_data[0].startswith('2010-') else output_data[1]
-    self.assertEquals('2010-09-11 19:20:21,test_record,Some other value here,4\r\n', rec)
+    if output_data[0].startswith('2010-'):
+      rec = output_data[0]
+    else:
+      rec = output_data[1]
+
+    self.assertEquals(
+      '2010-09-11 19:20:21,test_record,Some other value here,4\r\n',
+      rec
+    )
 
   def test_map_pipeline_key_rule_and_key_filters(self):
     """ Key Rules and key filters filter out matching records """
@@ -389,34 +489,34 @@ class DatastoreOutput(testutil.HandlerTestBase):
     test_data = [
       {
         "key": db.Key.from_path('ABC', 1, 'BCD', 1, 'TestRecord', 1),
-        "record_type" : "test_record",
-        "created_time" : datetime.datetime(2010,8,12,18,23,20),
-        "data_quality" : 3,
-        "schema_name" : "This is a, tests string",
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2010, 8, 12, 18, 23, 20),
+        "data_quality": 3,
+        "schema_name": "This is a, tests string",
         "expando_attr": "GOOD_VALUE"
       },
       {
         "key": db.Key.from_path('ABC', 1, 'BCD', 1, 'TestRecord', 2),
-        "record_type" : "test_record",
-        "created_time" : datetime.datetime(2010,9,11,19,20,21),
-        "data_quality" : 4,
-        "schema_name" : "One Value",
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2010, 9, 11, 19, 20, 21),
+        "data_quality": 4,
+        "schema_name": "One Value",
         "expando_attr": "GOOD_VALUE"
       },
       {
         "key": db.Key.from_path('ABC', 1, 'BCD', 2, 'TestRecord', 1),
-        "record_type" : "test_record",
-        "created_time" : datetime.datetime(2011,9,11,19,20,21),
-        "data_quality" : 1,
-        "schema_name" : "some_schema_name",
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2011, 9, 11, 19, 20, 21),
+        "data_quality": 1,
+        "schema_name": "some_schema_name",
         "expando_attr": "BAD_VALUE"
       },
       {
         "key": db.Key.from_path('ABC', 1, 'BCD', 2, 'TestRecord', 2),
-        "record_type" : "test_record",
-        "created_time" : datetime.datetime(2011,9,11,19,20,21),
-        "data_quality" : 4,
-        "schema_name" : "some_schema_name",
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2011, 9, 11, 19, 20, 21),
+        "data_quality": 4,
+        "schema_name": "some_schema_name",
         "expando_attr": "BAD_VALUE"
       }
     ]
@@ -427,11 +527,12 @@ class DatastoreOutput(testutil.HandlerTestBase):
     output_data = _run_pipeline(
       self.taskqueue,
       __name__ + ".TestRecord",
-      __name__ + ".record_map",
+      "mapreduceutils.record_map",
       params={
+        "output_format": "csv",
         "property_map": [{
           "model_match_rule": {
-            "key" : [("ABC", 1)],
+            "key": [("ABC", 1)],
           },
           "property_list": [
             "created_time",
@@ -450,21 +551,20 @@ class DatastoreOutput(testutil.HandlerTestBase):
     self.assertEquals(1, len(self.emails))
     self.assertTrue(self.emails[0][1].startswith("Pipeline successful:"))
 
-    # Assert number of rows, and format of one of them. Order is not predictable
     self.assertEquals(2, len(output_data))
     self.assertRegexpMatches(output_data[0], ".+,GOOD_VALUE,.+")
     self.assertRegexpMatches(output_data[1], ".+,GOOD_VALUE,.+")
 
-  def test_map_pipeline_does_not_yield_for_empty_properties(self):
-    """ Property map filters filter out non matching records """
+  def test_map_pipeline_does_not_yield_csv_for_empty_properties(self):
+    """ No empty CSV records are generated """
 
     # Prepare test data
     test_data = [
       {
-        "record_type" : "test_record",
-        "created_time" : None,
-        "data_quality" : None,
-        "schema_name" : ""
+        "record_type": "test_record",
+        "created_time": None,
+        "data_quality": None,
+        "schema_name": ""
       }
     ]
 
@@ -474,11 +574,12 @@ class DatastoreOutput(testutil.HandlerTestBase):
     output_data = _run_pipeline(
       self.taskqueue,
       __name__ + ".TestRecord",
-      __name__ + ".record_map",
+      "mapreduceutils.record_map",
       params={
+        "output_format": "csv",
         "property_map": [{
           "model_match_rule": {
-            "properties" : [("record_type", "test_record")],
+            "properties": [("record_type", "test_record")],
           },
           "property_list": [
             "created_time",
@@ -494,5 +595,48 @@ class DatastoreOutput(testutil.HandlerTestBase):
     self.assertEquals(1, len(self.emails))
     self.assertTrue(self.emails[0][1].startswith("Pipeline successful:"))
 
-    # Assert number of rows, and format of one of them. Order is not predictable
+    # Assert no empty values are generated
+    self.assertEquals(0, len(output_data))
+
+  def test_map_pipeline_does_not_yield_json_for_empty_properties(self):
+    """ No JSON records with all null values are generated """
+
+    # Prepare test data
+    test_data = [
+      {
+        "record_type": "test_record",
+        "created_time": None,
+        "data_quality": None,
+        "schema_name": ""
+      }
+    ]
+
+    for r in test_data:
+      TestRecord(**r).put()
+
+    output_data = _run_pipeline(
+      self.taskqueue,
+      __name__ + ".TestRecord",
+      "mapreduceutils.record_map",
+      params={
+        "output_format": "json",
+        "property_map": [{
+          "model_match_rule": {
+            "properties": [("record_type", "test_record")],
+          },
+          "property_list": [
+            "created_time",
+            "expando_attr",
+            "schema_name",
+            "data_quality"
+          ]
+        }]
+      }
+    )
+
+    # Asset Pipeline finished
+    self.assertEquals(1, len(self.emails))
+    self.assertTrue(self.emails[0][1].startswith("Pipeline successful:"))
+
+    # Assert no empty values are generated
     self.assertEquals(0, len(output_data))

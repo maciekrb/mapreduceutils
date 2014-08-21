@@ -1,7 +1,14 @@
+Recent Updates
+==============
+- Unified interface for working with ndb, db models and text (currenty JSON) input
+- Added `mapper_key` spec which allows to define how to generate the mapper key used for
+  map-reduce operation.
+- Added `output_format` spec so mapper can now output CSV or JSON (pickle coming soon).
+
 About
 =====
 
-Simple Library for performing Appengine Datastore transformation operations
+Simple Library to assist in the implementation of MapReduce patterns on Google AppEngine
 
 Requirements
 ============
@@ -11,9 +18,19 @@ You can also check it out through Subversion here:
 
 Functionality
 =============
-Through simple rules, allows to filter out or modify, App Engine Datastore models via Mapreduce, 
-even when using expando models with very different properties. Works with older db models and the
-newer ndb models.
+Through simple rules, allows to filter out or modify, AppEngine Datastore entries (or JSON records)
+via MapReduce. Works with older `db` API, as well as newer `ndb`. Ideal for running popular patterns
+of MapReduce or exporting CSV/JSON by only providing a configuration object.
+
+By providing a simple configuration you can:
+
+- Generate / export only chosen properties on the Model.
+- Generate / export only entities matching a pattern (prop_x = 'something', model ancestor = X).
+- Define the mapper key to generate for the generated entry.
+- Augment / modify generated entities.
+
+Usage
+=====
 
 Say you have a model like :
 ```python
@@ -34,10 +51,24 @@ obj.put()
 # ... Thousands of times ... 
 ```
 
+Exporting Datastore Records as CSV
+----------------------------------
+
+Exporting a Datastore model is pretty straightforward: 
+
+```python
+property_map = [
+  {
+    "property_list": [
+      "attr1",
+      "attr2"
+    ]
+  },
+
 You then decide to export the data into a single file, but then, since you have different "schemas" 
 of your objects, how do you actually make some structure out of this ?
 
-I'll leave you the fun of deciding which expando attributes make sense to be in the same "column", 
+I'll leave you the fun of deciding which `Expando` attributes make sense to be in the same "column", 
 but this utility will make it easy to map those attributes to "columns" once you've got your schema.
 
 In the end you should be able to get something like this:
@@ -56,6 +87,7 @@ Or this, if that is works better for you, with just a tiny config change
 | Two   | 2010-03-10 | Something Else |
 | Three   | 2010-03-10 | Something Else |
 
+You can also decide to export everything as JSON
 
 Usage
 =====
