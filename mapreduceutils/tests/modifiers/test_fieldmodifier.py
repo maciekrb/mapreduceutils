@@ -151,11 +151,31 @@ class TestFieldModifier(unittest.TestCase):
     record.value = 'Original Value'
 
     mod1 = DummyFieldModifier(identifier='xy0001')
-    mod2 = DummyFieldModifier2(identifier='xy0002', operands={"operand_1": "identifier.xy0001"})
+    mod2 = DummyFieldModifier2(identifier='xy0002',
+                               operands={"operand_1": "identifier.xy0001"})
 
     mod1.eval(record, chain)
     mod2.eval(record, chain)
     self.assertEquals('OKI', chain['xy0002'])
+
+  def test_empty_method_bypasses_value(self):
+    """ FieldModifier Empty method allows property rename """
+
+    chain = {}
+    record = DummyModel()
+    record.prop_a = 'ABCDE 1'
+
+    definition = {
+      "identifier": "xy0002",
+      "operands": {
+        "value": "model.prop_a"
+      }
+    }
+
+    mod = FieldModifier.from_dict(definition)
+    mod.eval(record, chain)
+    self.assertEqual('ABCDE 1', chain['xy0002'])
+
 
 if __name__ == '__main__':
 

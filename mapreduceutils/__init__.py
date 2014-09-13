@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from copy import copy
 from mapreduceutils.modifiers import FieldModifier
 from mapreduceutils.propertymap import (
   KeyModelMatchRule,
@@ -65,7 +66,7 @@ class MapperRecord(object):
   def mapper_key(self, mapper_spec):
     props = self.pick_properties(mapper_spec)
     values = [unicode(f) for f in props.values()]
-    return u"-".join(values)
+    return u"|".join(values)
 
   def matches_filters(self, property_filters=None, key_filters=None):
     """
@@ -152,6 +153,7 @@ class MapperRecord(object):
       oper = str(oper)
       real_value = getattr(self, attr)
 
+      #logging.error("{},{},{}=={}".format(attr, oper, cmp_value, real_value))
       if oper == '=' and real_value != cmp_value:
         return False
       elif oper == 'IN' and real_value not in cmp_value:
@@ -159,7 +161,7 @@ class MapperRecord(object):
 
     return True
 
-  def pick_properties(self, property_list):
+  def pick_properties(self, property_list, defaults=None):
     """
     Resolves the defined property list from the record
 
@@ -183,15 +185,20 @@ class MapperRecord(object):
     If a property from property_list does not exist, a None type is added
     instead so column structure is maintained.
 
+    If defaults dict is defined, de provided value is used instead of None
+
     Returns:
       Ordered Dictionary containing property_list items
     """
+    if defaults is None:
+      defaults = dict()
+
     obj = OrderedDict()
     for k in property_list:
       if isinstance(k, basestring):
-        obj[k] = getattr(self, k)
+        obj[k] = getattr(self, k, defaults.get(k))
       elif isinstance(k, list):  # List of Modifier definitions
-        modifier_chain = {}
+        modifier_chain = copy(obj)  # copy previously resolved attrs
         for mod_def in k:
           mod = FieldModifier.from_dict(mod_def)
           mod.eval(self, modifier_chain)
@@ -232,7 +239,6 @@ class MapperRecord(object):
         for prop in match_rule["properties"]:
           rule_attr_name, rule_attr_value = prop
           attr_value = getattr(self, rule_attr_name)
-
           chain.append(attr_value == rule_attr_value)
         prop_match = all(chain)
       except KeyError:  # Means no properties were given to match
@@ -263,7 +269,7 @@ class GAE_DBRecord(MapperRecord):
           new_key = ndb.Key.from_old_key(self._data.__dict__.get(attr_key))
           value = new_key.urlsafe()
       else:
-        value = getattr(self._data, name, None)
+        value = getattr(self._data, name)
 
     return value
 
@@ -304,7 +310,6 @@ def record_map(data_record):
   ctx = context.get()
   property_map = ctx.mapreduce_spec.mapper.params.get('property_map')
   output_format = ctx.mapreduce_spec.mapper.params.get('output_format', 'JSON')
-  mapper_key_spec = ctx.mapreduce_spec.mapper.params.get('mapper_key')
 
   record = MapperRecord.create(data_record)
   if record:
@@ -313,10 +318,18 @@ def record_map(data_record):
         property_filters=map_rule.get("property_filters"),
         key_filters=map_rule.get("key_filters")
       ):
-      row = record.pick_properties(map_rule["property_list"])
-      if any(row.values()):
-        writer = OutputWriter.get_writer(output_format)
-        if mapper_key_spec:
-          yield (record.mapper_key(mapper_key_spec), writer.write(row))
-        else:
-          yield writer.write(row)
+      try:
+        row = record.pick_properties(map_rule["property_list"], map_rule.get('defaults'))
+        if any(row.values()):
+          writer = OutputWriter.get_writer(output_format)
+          if 'mapper_key_spec' in map_rule:
+            key = record.mapper_key(map_rule.get('mapper_key_spec'))
+            data = writer.write(row)
+            #logging.warn("Mapper pre yield MR: {}:{}".format(key, data))
+            yield (key, data)
+          else:
+            data = writer.write(row)
+            #logging.warn("Mapper pre yield M: {}".format(data))
+            yield data
+      except ValueError as m:
+        logging.warn("Skipping record due to modifier errors:{}".format(m))

@@ -59,9 +59,12 @@ Exporting a Datastore model is pretty straightforward:
 ```python
 property_map = [
   {
+    "model_match_rule": {
+      "properties" : [("attr1", "One")],
+    },
     "property_list": [
       "attr1",
-      "attr2"
+      "attr2",
     ]
   },
 

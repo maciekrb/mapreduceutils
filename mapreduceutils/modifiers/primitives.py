@@ -3,9 +3,11 @@ Basice value modifier classes
 
 Implements Basic format and logic modifiers
 """
+import logging
 import datetime
 from . import FieldModifier
 from math import ceil, floor
+from py_expression_eval import Parser
 
 
 class DateFormatModifier(FieldModifier):
@@ -446,47 +448,26 @@ class ArithmeticModifier(FieldModifier):
 
   META_NAME = "Evaluate basic arithmetic expression"
   META_DESCRIPTION = "Evaluates basic arithmetic operations between two operands"
-  META_OPERANDS = {
-    "x": {
-      "name": "X Term",
-      "description": "First term of expression",
-      "valid_types": [int, float]
-    },
-    "y": {
-      "name": "Y Term",
-      "description": "Second term of expression",
-      "valid_types": [int, float]
-    }
-  }
+  META_OPERANDS = dict()
   META_ARGS = {
-    "operation": {
-      "name": "Operation to perform",
-      "description": "Arithmetic operation to be performed on operands x & y",
-      "type": basestring,
-      "options": {
-        "add" : "Add",
-        "substract": "Substract",
-        "multiply": "Multiply",
-        "divide": "Divide",
-        "modulo": "Modulo"
-      }
+    "expression": {
+      "name": "expression to evaluate",
+      "description": "Arithmetic expression to be evaluated",
+      "type": basestring
     }
   }
 
   def _evaluate(self):
-    op = self.get_argument('operation').lower()
-
-    if op == 'add':
-      return self.get_operand('x') + self.get_operand('y')
-
-    elif op == 'substract':
-      return self.get_operand('x') - self.get_operand('y')
-
-    elif op == 'multiply':
-      return self.get_operand('x') * self.get_operand('y')
-
-    elif op == 'divide':
-      return self.get_operand('x') / self.get_operand('y')
-
-    elif op == 'modulo':
-      return self.get_operand('x') % self.get_operand('y')
+    expression = str(self.get_argument('expression'))
+    operands = self.get_operands()
+    #logging.warn(u"Expression:{}".format(expression))
+    #logging.warn(u"Operands:{}".format(operands))
+    parser = Parser()
+    try:
+      return parser.parse(expression).evaluate(operands)
+    except TypeError:
+      msg = "Type Error expression {} with operands {}"
+      raise ValueError(msg.format(expression, operands))
+    except ZeroDivisionError:
+      msg = "Zero division for expression {} with operands {}"
+      raise ValueError(msg.format(expression, operands))

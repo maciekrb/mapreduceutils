@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
   name="mapreduceutils",
-  version="2.3",
+  version="2.5",
   author="Maciek Ruckgaber",
   author_email="maciekrb@gmail.com",
   description="Python mapreduce utilities for Google App Engine",

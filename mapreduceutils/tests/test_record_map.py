@@ -149,6 +149,67 @@ class DatastoreOutput(testutil.HandlerTestBase):
       rec
     )
 
+  def test_map_pipeline_default_values(self):
+    """ Default values are consistenly resolved """
+
+    # Prepare test data
+    test_data = [
+      {
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2010, 8, 12, 18, 23, 20),
+        "data_quality": 3,
+        "schema_name": u"This is á, tests string"
+      },
+      {
+        "record_type": "test_record",
+        "created_time": datetime.datetime(2011, 9, 11, 19, 20, 21),
+        "data_quality": 4,
+        "schema_name": "some_schema_name"
+      }
+    ]
+
+    for r in test_data:
+      TestRecord(**r).put()
+
+    output_data = _run_pipeline(
+      self.taskqueue,
+      __name__ + ".TestRecord",
+      "mapreduceutils.record_map",
+      params={
+        "output_format": "csv",
+        "property_map": [{
+          "model_match_rule": {
+            "properties": [("record_type", "test_record")],
+          },
+          "property_list": [
+            "created_time",
+            "data_quality",
+            "expando_attr",
+          ],
+          "defaults": {
+            "expando_attr": "blah"
+          }
+        }]
+      }
+    )
+
+    # Asset Pipeline finished
+    self.assertEquals(1, len(self.emails))
+    self.assertTrue(self.emails[0][1].startswith("Pipeline successful:"))
+    self.assertEquals(2, len(output_data))
+
+    # Assert number of rows, and format of one of them.
+    # Order is not predictable
+    if output_data[0].startswith('2010-'):
+      rec = output_data[0]
+    else:
+      rec = output_data[1]
+
+    self.assertEquals(
+      '2010-08-12 18:23:20,3,blah\r\n',
+      rec
+    )
+
   def test_map_pipeline_json_conversion(self):
     """ Tests all records were dumped and that JSON format is consistent """
 

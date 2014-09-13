@@ -659,7 +659,7 @@ class TestArithmeticModifier(unittest.TestCase):
     modifier = primitives.ArithmeticModifier(
       identifier="xxx0001",
       operands={"x": "model.value_a", "y": "model.value_b"},
-      arguments={"operation": "add"}
+      arguments={"expression": "x+y"}
     )
     modifier.eval(record, chain)
     self.assertEqual(7, chain['xxx0001'])
@@ -668,7 +668,7 @@ class TestArithmeticModifier(unittest.TestCase):
     modifier = primitives.ArithmeticModifier(
       identifier="xxx0002",
       operands={"x": "model.value_a", "y": "model.value_c"},
-      arguments={"operation": "add"}
+      arguments={"expression": "x+y"}
     )
     modifier.eval(record, chain)
     self.assertEqual(4.0, chain['xxx0002'])
@@ -686,7 +686,7 @@ class TestArithmeticModifier(unittest.TestCase):
     modifier = primitives.ArithmeticModifier(
       identifier="xxx0001",
       operands={"x": "model.value_b", "y": "model.value_a"},
-      arguments={"operation": "substract"}
+      arguments={"expression": "x-y"}
     )
     modifier.eval(record, chain)
     self.assertEqual(1, chain['xxx0001'])
@@ -695,7 +695,7 @@ class TestArithmeticModifier(unittest.TestCase):
     modifier = primitives.ArithmeticModifier(
       identifier="xxx0002",
       operands={"x": "model.value_b", "y": "model.value_c"},
-      arguments={"operation": "substract"}
+      arguments={"expression": "x-y"}
     )
     modifier.eval(record, chain)
     self.assertEqual(3.0, chain['xxx0002'])
@@ -713,7 +713,7 @@ class TestArithmeticModifier(unittest.TestCase):
     modifier = primitives.ArithmeticModifier(
       identifier="xxx0001",
       operands={"x": "model.value_b", "y": "model.value_a"},
-      arguments={"operation": "multiply"}
+      arguments={"expression": "x*y"}
     )
     modifier.eval(record, chain)
     self.assertEqual(12, chain['xxx0001'])
@@ -722,7 +722,7 @@ class TestArithmeticModifier(unittest.TestCase):
     modifier = primitives.ArithmeticModifier(
       identifier="xxx0002",
       operands={"x": "model.value_b", "y": "model.value_c"},
-      arguments={"operation": "multiply"}
+      arguments={"expression": "x*y"}
     )
     modifier.eval(record, chain)
     self.assertEqual(4.0, chain['xxx0002'])
@@ -742,7 +742,7 @@ class TestArithmeticModifier(unittest.TestCase):
     modifier = primitives.ArithmeticModifier(
       identifier="xxx0001",
       operands={"x": "model.value_b", "y": "model.value_a"},
-      arguments={"operation": "divide"}
+      arguments={"expression": "x/y"}
     )
     modifier.eval(record, chain)
     self.assertEqual(1, chain['xxx0001'])
@@ -751,7 +751,7 @@ class TestArithmeticModifier(unittest.TestCase):
     modifier = primitives.ArithmeticModifier(
       identifier="xxx0002",
       operands={"x": "model.value_b", "y": "model.value_c"},
-      arguments={"operation": "divide"}
+      arguments={"expression": "x/y"}
     )
     modifier.eval(record, chain)
     self.assertEqual(4.0, chain['xxx0002'])
@@ -760,7 +760,7 @@ class TestArithmeticModifier(unittest.TestCase):
     modifier = primitives.ArithmeticModifier(
       identifier="xxx0003",
       operands={"x": "model.value_d", "y": "model.value_e"},
-      arguments={"operation": "divide"}
+      arguments={"expression": "x/y"}
     )
     modifier.eval(record, chain)
     self.assertAlmostEqual(1.33333333, chain['xxx0003'])
@@ -780,7 +780,7 @@ class TestArithmeticModifier(unittest.TestCase):
     modifier = primitives.ArithmeticModifier(
       identifier="xxx0001",
       operands={"x": "model.value_b", "y": "model.value_a"},
-      arguments={"operation": "modulo"}
+      arguments={"expression": "x%y"}
     )
     modifier.eval(record, chain)
     self.assertEqual(1, chain['xxx0001'])
@@ -789,7 +789,7 @@ class TestArithmeticModifier(unittest.TestCase):
     modifier = primitives.ArithmeticModifier(
       identifier="xxx0002",
       operands={"x": "model.value_b", "y": "model.value_c"},
-      arguments={"operation": "modulo"}
+      arguments={"expression": "x%y"}
     )
     modifier.eval(record, chain)
     self.assertEqual(0.0, chain['xxx0002'])
@@ -798,10 +798,54 @@ class TestArithmeticModifier(unittest.TestCase):
     modifier = primitives.ArithmeticModifier(
       identifier="xxx0003",
       operands={"x": "model.value_d", "y": "model.value_e"},
-      arguments={"operation": "modulo"}
+      arguments={"expression": "x%y"}
     )
     modifier.eval(record, chain)
     self.assertAlmostEqual(1.0, chain['xxx0003'])
+
+  def test_nested_formula(self):
+    """ Arithmetic modifier nested operations OK """
+
+    chain = {}
+    record = Record()
+    record.value_a = 3
+    record.value_b = 4
+    record.value_c = 1.0
+    record.value_d = 4.0
+    record.value_e = 3.0
+
+    """ Modulo of two integers """
+    modifier = primitives.ArithmeticModifier(
+      identifier="xxx0001",
+      operands={"x": "model.value_b", "y": "model.value_a", "z": 3.4},
+      arguments={"expression": "(x*y) + (2*z)"}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual(18.8, chain['xxx0001'])
+
+  def test_nested_formula_with_names(self):
+    """ Arithmetic modifier nested operations with variable names OK """
+
+    chain = {}
+    record = Record()
+    record.value_a = 3
+    record.value_b = 4
+    record.value_c = 1.0
+    record.value_d = 4.0
+    record.value_e = 3.0
+
+    """ Modulo of two integers """
+    modifier = primitives.ArithmeticModifier(
+      identifier="xxx0001",
+      operands={
+        "some_val": "model.value_b",
+        "other_val": "model.value_a",
+        "z_val": 3.4
+      },
+      arguments={"expression": "(some_val * other_val) + (2 * z_val)"}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual(18.8, chain['xxx0001'])
 
 if __name__ == '__main__':
   suite = unittest.TestSuite()

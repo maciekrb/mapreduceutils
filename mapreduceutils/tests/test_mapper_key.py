@@ -62,7 +62,7 @@ class TestModelMapperKey(unittest.TestCase):
     entity.put()
     record = MapperRecord.create(entity)
     self.assertEqual(
-      '2010-08-12 18:23:20-3',
+      '2010-08-12 18:23:20|3',
       record.mapper_key(mapper_key_spec)
     )
 
@@ -123,6 +123,6 @@ class TestModelMapperKey(unittest.TestCase):
     entity.put()
     record = MapperRecord.create(entity)
     self.assertEqual(
-      'test_record-2010-08',
+      'test_record|2010|08',
       record.mapper_key(mapper_key_spec)
     )
