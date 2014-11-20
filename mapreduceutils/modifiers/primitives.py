@@ -470,4 +470,5 @@ class ArithmeticModifier(FieldModifier):
       raise ValueError(msg.format(expression, operands))
     except ZeroDivisionError:
       msg = "Zero division for expression {} with operands {}"
-      raise ValueError(msg.format(expression, operands))
+      logging.warn(msg.format(expression, operands))
+      return float('NaN')
