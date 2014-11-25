@@ -310,6 +310,7 @@ def record_map(data_record):
   ctx = context.get()
   property_map = ctx.mapreduce_spec.mapper.params.get('property_map')
   output_format = ctx.mapreduce_spec.mapper.params.get('output_format', 'JSON')
+  writer_args = ctx.mapreduce_spec.mapper.params.get('writer_args', dict())
 
   record = MapperRecord.create(data_record)
   if record:
@@ -324,7 +325,7 @@ def record_map(data_record):
           writer = OutputWriter.get_writer(output_format)
           if 'mapper_key_spec' in map_rule:
             key = record.mapper_key(map_rule.get('mapper_key_spec'))
-            data = writer.write(row)
+            data = writer.write(row, **writer_args)
             #logging.warn("Mapper pre yield MR: {}:{}".format(key, data))
             yield (key, data)
           else:
