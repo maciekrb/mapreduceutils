@@ -2,6 +2,7 @@ import csv
 from cStringIO import StringIO
 import datetime
 from json import JSONEncoder
+import math
 
 
 class OutputWriter:
@@ -63,5 +64,18 @@ class CSVWriter(OutputWriter):
 
 class JSONWriter(OutputWriter):
   @classmethod
-  def write(cls, data_obj):
+  def write(cls, data_obj, nan_to_null=False):
+    """
+    Encodes given python object to JSON
+
+    Args:
+      data_obj:      Python object to encode to JSON
+      nan_to_null:   (Bool) If True NaN values will be converted to None
+                     before encoding to JSON
+    Returns:
+      JSON string
+    """
+    if nan_to_null:
+      data_obj = {k: None if isinstance(v, float) and math.isnan(v) else v
+                  for k, v in data_obj.items()}
     return "{}\r\n".format(MapperJSONEncoder().encode(data_obj))
