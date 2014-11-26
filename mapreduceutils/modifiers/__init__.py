@@ -9,14 +9,13 @@ __all__ = ['FieldModifier', 'primitives']
 class FieldModifier(object):
 
   def __init__(self, identifier, operands=None, arguments=None):
-
     self.identifier = identifier
 
-    if operands:
-      self.operands = {key: val for key, val in operands.iteritems()}
+    operands = operands or {}
+    self.operands = {key: val for key, val in operands.iteritems()}
 
-    if arguments:
-      self.arguments = {key: val for key, val in arguments.iteritems()}
+    arguments = arguments or {}
+    self.arguments = {key: val for key, val in arguments.iteritems()}
 
   def args_are_valid(self):
     pass
