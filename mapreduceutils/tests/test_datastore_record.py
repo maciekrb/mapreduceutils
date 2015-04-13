@@ -83,7 +83,7 @@ class TestDatastoreRecordAttributeResolution(unittest.TestCase):
     self.assertEqual(expected, record._key_pairs)
 
   def test_db_attribute_resolution(self):
-    """ DatastoreRecord resolves good values from db.Model objects """
+    """ MapperRecord resolves good values from db.Model objects """
 
     key = db.Key.from_path('ABC', 1, 'BCD', 2, 'SampleDbModel', 10)
     data = {
@@ -103,7 +103,7 @@ class TestDatastoreRecordAttributeResolution(unittest.TestCase):
     self.assertEqual("Some value here", record.expando_attr)
 
   def test_ndb_attribute_resolution(self):
-    """ DatastoreRecord resolves good values from ndb.Model objects """
+    """ MapperRecord resolves good values from ndb.Model objects """
 
     key = ndb.Key('ABC', 1, 'BCD', 2, 'SampleNDBModel', 10)
     data = {
@@ -121,6 +121,33 @@ class TestDatastoreRecordAttributeResolution(unittest.TestCase):
     self.assertEqual(3, record.data_quality)
     self.assertEqual("This is a, test string", record.schema_name)
     self.assertEqual("Some value here", record.expando_attr)
+
+  def test_ndb_structured_attribute_resolution(self):
+    """ MapperRecord resolves values from structured properties  """
+
+    key = ndb.Key('ABC', 1, 'BCD', 2, 'SampleNDBModel', 10)
+    data = {
+      "record_type": "test_record",
+      "created_time": datetime.datetime(2010, 8, 12, 18, 23, 20),
+      "data_quality": 3,
+      "schema_name": "This is a, test string",
+      "expando_attr": "Some value here",
+      "ref_property": SampleNDBModel(**{
+        "nested_property": 'ABC'
+      })
+    }
+
+    record = MapperRecord.create(SampleNDBModel(key=key, **data))
+
+    self.assertEqual("test_record", record.record_type)
+    exp_date = datetime.datetime(2010, 8, 12, 18, 23, 20)
+    self.assertEqual(exp_date, record.created_time)
+    self.assertEqual(3, record.data_quality)
+    self.assertEqual("This is a, test string", record.schema_name)
+    self.assertEqual("Some value here", record.expando_attr)
+    self.assertEqual(data['ref_property'], record.ref_property)
+    self.assertEqual(data['ref_property'].nested_property,
+                     record.ref_property.nested_property)
 
 
 class TestDatastoreRecordFilterMatching(unittest.TestCase):

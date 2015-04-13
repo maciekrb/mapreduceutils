@@ -5,7 +5,7 @@ from app.config import notification_templates_path
 from mapreduce import base_handler
 from mapreduce.input_readers import RecordsReader
 from mapreduce.lib.files import file_service_pb
-from mapreduce.util import handler_for_name
+from utils import handler_for_name
 from google.appengine.ext import db
 from app.models import ReducedRecord, IndicatorEntry, Notification, SystemUser
 from webapp2_extras import json

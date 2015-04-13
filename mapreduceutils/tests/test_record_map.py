@@ -3,6 +3,7 @@
 
 import datetime
 import json
+import pipeline
 from testlib import testutil
 from google.appengine.ext import db
 from google.appengine.api import files
@@ -11,7 +12,6 @@ from google.appengine.ext import testbed
 from mapreduce import mapreduce_pipeline
 from mapreduce import input_readers
 from mapreduce import test_support
-from mapreduce.lib import pipeline
 
 
 def _run_pipeline(taskqueue, entity_kind, mapper_function, params={}):
