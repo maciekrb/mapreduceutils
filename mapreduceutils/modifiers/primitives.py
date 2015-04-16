@@ -5,6 +5,7 @@ Implements Basic format and logic modifiers
 """
 import logging
 import datetime
+import re
 from . import FieldModifier
 from math import ceil, floor
 from py_expression_eval import Parser
@@ -50,6 +51,15 @@ class DateFormatModifier(FieldModifier):
     f = getattr(self.get_operand('value'), 'strftime')
     return f(date_format)
 
+  def guess_return_type(self):
+    date_format = self.get_argument('date_format')
+    if date_format == '%s':
+      return datetime.time.__name__
+    elif re.search('%a|%A|%b|%B|%j|-|/', date_format):
+      return basestring.__name__
+    elif date_format in ('%Y', '%m', '%W', '%w', '%j'):
+      return int.__name__
+
 
 class CoerceToDateModifier(FieldModifier):
   """ Coerces a string into a datetime object """
@@ -90,6 +100,9 @@ class CoerceToDateModifier(FieldModifier):
     finally:
       return value
 
+  def guess_return_type(self):
+    return datetime.__name__
+
 
 class DateAddModifier(FieldModifier):
   """ Adds two dates """
@@ -118,6 +131,9 @@ class DateAddModifier(FieldModifier):
       return "value is not a date/datetime object"
 
     return value + datetime.timedelta(seconds=self.get_argument('seconds'))
+
+  def guess_return_type(self):
+    return datetime.__name__
 
 
 class DateSubstractModifier(FieldModifier):
@@ -178,6 +194,9 @@ class DateSubstractModifier(FieldModifier):
 
     return abs(out) if absolute is True else out
 
+  def guess_return_type(self):
+    return datetime.__name__
+
 
 class ConstantValueModifier(FieldModifier):
   """ Allows to generate a constant value """
@@ -218,12 +237,21 @@ class ConstantValueModifier(FieldModifier):
     except ValueError as e:
       return e.message
 
+  def guess_return_type(self):
+    vtype = self.get_argument('type')
+    if vtype == 'str':
+      return basestring.__name__
+    elif vtype == 'int':
+      return int.__name__
+    elif vtype == 'float':
+      return float.__name__
+
 
 class CoerceToNumberModifier(FieldModifier):
   """ Coerces a string/float into an int, so operations can be performed with values """
 
   META_NAME = 'Convert a string to an Integer'
-  META_DESCRIPTION = 'Coerces a string or float to an integer value, so it can be used to perform integer operations'
+  META_DESCRIPTION = 'Coerces a string or float to an integer/float value, so it can be used to perform  operations'
   META_OPERANDS = {
     "value": {
       "name": "Object to convert",
@@ -267,6 +295,13 @@ class CoerceToNumberModifier(FieldModifier):
     finally:
       return out
 
+  def guess_return_type(self):
+    vtype = self.get_argument('type')
+    if vtype == 'int':
+      return int.__name__
+    elif vtype == 'float':
+      return float.__name__
+
 
 class RoundNumberModifier(FieldModifier):
   """ Rounds a decimal value """
@@ -291,7 +326,16 @@ class RoundNumberModifier(FieldModifier):
   def _evaluate(self):
     ndigits = self.get_argument('ndigits')
     number = self.get_operand('value')
+    if ndigits == 0:
+      return int(number)
     return round(number, ndigits)
+
+  def guess_return_type(self):
+    ndigits = self.get_argument('ndigits')
+    if ndigits == 0:
+      return int.__name__
+    else:
+      return float.__name__
 
 
 class FloorNumberModifier(FieldModifier):
@@ -312,6 +356,9 @@ class FloorNumberModifier(FieldModifier):
     number = self.get_operand('value')
     return floor(number)
 
+  def guess_return_type(self):
+    return float.__name__
+
 
 class CeilNumberModifier(FieldModifier):
   """ Performs ceil() on value """
@@ -330,6 +377,9 @@ class CeilNumberModifier(FieldModifier):
   def _evaluate(self):
     number = self.get_operand('value')
     return ceil(number)
+
+  def guess_return_type(self):
+    return float.__name__
 
 
 class BooleanLogicModifier(FieldModifier):
@@ -383,6 +433,9 @@ class BooleanLogicModifier(FieldModifier):
         return self.get_argument('true_value')
       else:
         return self.get_argument('false_value')
+
+  def guess_return_type(self):
+    return basestring.__name__
 
 
 class TextMatchModifier(FieldModifier):
@@ -442,6 +495,9 @@ class TextMatchModifier(FieldModifier):
       except ValueError:
         return falseval
 
+  def guess_return_type(self):
+    return basestring.__name__
+
 
 class ArithmeticModifier(FieldModifier):
   """ Performs Basic arithmetic operation on terms """
@@ -472,3 +528,6 @@ class ArithmeticModifier(FieldModifier):
       msg = "Zero division for expression {} with operands {}"
       logging.warn(msg.format(expression, operands))
       return float('NaN')
+
+  def guess_return_type(self):
+    return float.__name__

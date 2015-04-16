@@ -36,7 +36,7 @@ class FieldModifier(object):
     if (isinstance(value, basestring)
        and ('model.' in value or 'identifier.' in value)):
 
-      prefix, attr_name = self.operands[name].split('.')
+      prefix, attr_name = self.operands[name].split('.', 1)
       if prefix == 'model':
         return getattr(self.record, attr_name)
       elif prefix == 'identifier':
@@ -150,6 +150,9 @@ class FieldModifier(object):
       constructor_args=args
     )
     return obj
+
+  def guess_return_type(self):
+    return basestring.__name__
 
 
 class BypassModifier(FieldModifier):

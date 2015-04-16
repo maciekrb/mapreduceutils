@@ -9,7 +9,7 @@ class Record(object):
 class TestDateFormatModifier(unittest.TestCase):
 
   def test_consistent_to_dict_module(self):
-    """ DateFormatModifier consistently serializes class path """
+    """ DateFormatModifier consistently serializes  path """
 
     modifier = primitives.DateFormatModifier(
         identifier='xxxx001',
@@ -126,6 +126,49 @@ class TestDateFormatModifier(unittest.TestCase):
     )
     modifier.eval(record, chain)
     self.assertEqual('2010-10-03', chain['xxxx001'])
+
+  def test_date_return_guess(self):
+    """ DateFormatModifier guesses consistent return values """
+
+    record = Record()
+    record.created_time = datetime.date(2010, 10, 3)
+
+    # Test integers
+    modifier = primitives.DateFormatModifier(
+        identifier='xxxx001',
+        operands={"value": "model.created_time"},
+        arguments={"date_format": "%Y"}
+    )
+    type_name = modifier.guess_return_type()
+    self.assertEqual('int', type_name)
+
+    modifier = primitives.DateFormatModifier(
+        identifier='xxxx001',
+        operands={"value": "model.created_time"},
+        arguments={"date_format": "%m"}
+    )
+
+    type_name = modifier.guess_return_type()
+    self.assertEqual('int', type_name)
+
+    # Test to timestamp
+    modifier = primitives.DateFormatModifier(
+        identifier='xxxx001',
+        operands={"value": "model.created_time"},
+        arguments={"date_format": "%s"}
+    )
+    type_name = modifier.guess_return_type()
+    self.assertEqual('time', type_name)
+
+    # Test to dash sep
+    modifier = primitives.DateFormatModifier(
+        identifier='xxxx001',
+        operands={"value": "model.created_time"},
+        arguments={"date_format": "%Y-%s"}
+    )
+    type_name = modifier.guess_return_type()
+    self.assertEqual('basestring', type_name)
+
 
 
 class TestCoerceToDateModifier(unittest.TestCase):
@@ -511,6 +554,65 @@ class TestConstantValueModifier(unittest.TestCase):
     modifier.eval(record, chain)
     self.assertIsInstance(chain['xxxx001'], basestring)
     self.assertEquals('could not convert string to float: x', chain['xxxx001'])
+
+
+class TestRoundNumberModifier(unittest.TestCase):
+  def test_round_int(self):
+    """ RoundNumberModifier returns int values for 0 rounding """
+
+    chain = {}
+    record = Record()
+    modifier = primitives.RoundNumberModifier(
+        identifier='xxxx001',
+        operands={"value": 1.34},
+        arguments={"ndigits": 0}
+    )
+    modifier.eval(record, chain)
+    self.assertIsInstance(chain['xxxx001'], int)
+    self.assertEqual(1, chain['xxxx001'])
+
+  def test_round_float(self):
+    """ RoundNumberModifier returns int values for 0 rounding """
+
+    chain = {}
+    record = Record()
+    modifier = primitives.RoundNumberModifier(
+        identifier='xxxx001',
+        operands={"value": 1.34333},
+        arguments={"ndigits": 1}
+    )
+    modifier.eval(record, chain)
+    self.assertIsInstance(chain['xxxx001'], float)
+    self.assertEqual(1.3, chain['xxxx001'])
+
+
+class TestFloorNumberModifier(unittest.TestCase):
+  def test_floor_value(self):
+    """ FloorNumberModifier modifies values consistently """
+
+    chain = {}
+    record = Record()
+    modifier = primitives.FloorNumberModifier(
+        identifier='xxxx001',
+        operands={"value": 1.34}
+    )
+    modifier.eval(record, chain)
+    self.assertIsInstance(chain['xxxx001'], float)
+    self.assertEqual(1.0, chain['xxxx001'])
+
+  def test_round_float(self):
+    """ RoundNumberModifier returns int values for 0 rounding """
+
+    chain = {}
+    record = Record()
+    modifier = primitives.RoundNumberModifier(
+        identifier='xxxx001',
+        operands={"value": 1.34333},
+        arguments={"ndigits": 1}
+    )
+    modifier.eval(record, chain)
+    self.assertIsInstance(chain['xxxx001'], float)
+    self.assertEqual(1.3, chain['xxxx001'])
 
 
 class TestBooleanLogicModifier(unittest.TestCase):

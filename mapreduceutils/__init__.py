@@ -51,6 +51,9 @@ class MapperRecord(object):
     elif isinstance(input_obj, db.Model):
       record = GAE_DBRecord(input_obj)
 
+    elif isinstance(input_obj, dict):
+      record = DictRecord(input_obj)
+
     elif isinstance(input_obj, basestring):
       try:
         record = MapperRecord(json.loads(input_obj))
@@ -59,9 +62,6 @@ class MapperRecord(object):
         record = None
 
     return record
-
-  def __getattr__(self, name):
-      return self._data.get(name)
 
   def mapper_key(self, mapper_spec):
     props = self.pick_properties(mapper_spec)
@@ -247,6 +247,29 @@ class MapperRecord(object):
       if all((key_match, prop_match)):
         return rule
 
+  def __getattr__(self, name):
+    parts = name.split(".")
+    num_parts = len(parts)
+
+    if num_parts == 1:
+      value = self._resolve_value(self._data, name)
+    else:
+      # Resolve until last or None
+      obj = self._data
+      for p in parts:
+        res = self._resolve_value(obj, p)
+        if res is not None:
+          obj = res
+        else:
+          break
+
+      value = res
+
+    return value
+
+  def _resolve_value(self, obj, name):
+    raise NotImplemented("resolve value should be implemented in subclass")
+
 
 class GAE_DBRecord(MapperRecord):
   def __init__(self, input_obj):
@@ -254,22 +277,22 @@ class GAE_DBRecord(MapperRecord):
     self._key = ndb.Key.from_old_key(self._data.key())
     self._key_pairs = self._key.pairs()
 
-  def __getattr__(self, name):
+  def _resolve_value(self, obj, name):
 
-    if name == 'key':
-      value = self._key.urlsafe()
-
+    raw_value = obj._properties.get(name)
+    if isinstance(raw_value, db.ReferenceProperty):
+      """ We only want to compare the the key without de-referencing it """
+      attr_key = "_{}".format(name)
+      value = None
+      if attr_key in obj.__dict__:
+        value = ndb.Key.from_old_key(obj.__dict__.get(attr_key))
+    elif hasattr(obj, name) and callable(getattr(obj, name)):
+      value = ndb.Key.from_old_key(getattr(obj, name)())
     else:
-      raw_value = self._data._properties.get(name)
-      if isinstance(raw_value, db.ReferenceProperty):
-        """ We only want to compare the the key without de-referencing it """
-        attr_key = "_{}".format(name)
-        value = None
-        if attr_key in self._data.__dict__:
-          new_key = ndb.Key.from_old_key(self._data.__dict__.get(attr_key))
-          value = new_key.urlsafe()
-      else:
-        value = getattr(self._data, name)
+      value = getattr(obj, name)
+
+    if isinstance(value, ndb.Key):
+      value = value.urlsafe()
 
     return value
 
@@ -280,9 +303,30 @@ class GAE_NDBRecord(MapperRecord):
     self._key = input_obj.key
     self._key_pairs = input_obj.key.pairs()
 
-  def __getattr__(self, name):
+  def _resolve_value(self, obj, name):
+    value = getattr(obj, name, None)
+    if isinstance(value, ndb.Key):
+      value = value.urlsafe()
 
-    value = getattr(self._data, name, None)
+    return value
+
+
+class DictRecord(MapperRecord):
+  def __init__(self, input_obj):
+    if not isinstance(input_obj, dict):
+      msg = u"Invalid type '{}' given, input_obj must be dict"
+      raise ValueError(msg.format(type(input_obj)))
+
+    self._data = input_obj
+    self._key = input_obj['_key'] if '_key' in input_obj else None
+    self._key_pairs = self._key.pairs() if self._key else None
+
+  def _resolve_value(self, obj, name):
+
+    if name == 'key':
+      name = '_key'
+
+    value = obj.get(name, None)
     if isinstance(value, ndb.Key):
       value = value.urlsafe()
 
@@ -291,6 +335,10 @@ class GAE_NDBRecord(MapperRecord):
 
 class CSVRecord(MapperRecord):
   def __init__(self, input_obj, mapping_obj):
+    msg = "Sorry :( CSV Records have not been implemented yet !"
+    raise NotImplemented(msg)
+
+  def _resolve_value(self, obj, name):
     msg = "Sorry :( CSV Records have not been implemented yet !"
     raise NotImplemented(msg)
 

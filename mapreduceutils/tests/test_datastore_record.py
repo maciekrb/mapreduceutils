@@ -143,11 +143,43 @@ class TestDatastoreRecordAttributeResolution(unittest.TestCase):
     exp_date = datetime.datetime(2010, 8, 12, 18, 23, 20)
     self.assertEqual(exp_date, record.created_time)
     self.assertEqual(3, record.data_quality)
-    self.assertEqual("This is a, test string", record.schema_name)
-    self.assertEqual("Some value here", record.expando_attr)
-    self.assertEqual(data['ref_property'], record.ref_property)
+    props = record.pick_properties([
+      'schema_name',
+      'expando_attr',
+      'ref_property',
+      'ref_property.nested_property'
+    ])
+    self.assertEqual("This is a, test string", props['schema_name'])
+    self.assertEqual("Some value here", props['expando_attr'])
+    self.assertEqual(data['ref_property'], props['ref_property'])
     self.assertEqual(data['ref_property'].nested_property,
-                     record.ref_property.nested_property)
+                     props['ref_property.nested_property'])
+
+  def test_dict_attribute_resolution(self):
+    """ MapperRecord resolves values from dict objects """
+
+    data = {
+      "record_type": "test_record",
+      "created_time": datetime.datetime(2010, 8, 12, 18, 23, 20),
+      "data_quality": 3,
+      "schema_name": "This is a, test string",
+      "expando_attr": "Some value here"
+    }
+    record = MapperRecord.create(data)
+
+    props = record.pick_properties([
+      'record_type',
+      'created_time',
+      'data_quality',
+      'schema_name',
+      'expando_attr'
+    ])
+    self.assertEqual("test_record", props['record_type'])
+    exp_date = datetime.datetime(2010, 8, 12, 18, 23, 20)
+    self.assertEqual(exp_date, props['created_time'])
+    self.assertEqual(3, props['data_quality'])
+    self.assertEqual("This is a, test string", props['schema_name'])
+    self.assertEqual("Some value here", props['expando_attr'])
 
 
 class TestDatastoreRecordFilterMatching(unittest.TestCase):
