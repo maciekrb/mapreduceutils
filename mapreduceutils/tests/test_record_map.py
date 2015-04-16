@@ -12,6 +12,7 @@ from google.appengine.ext import testbed
 from mapreduce import mapreduce_pipeline
 from mapreduce import input_readers
 from mapreduce import test_support
+import cloudstorage as gcs
 
 
 def _run_pipeline(taskqueue, entity_kind, mapper_function, params={}):
@@ -30,13 +31,14 @@ def _run_pipeline(taskqueue, entity_kind, mapper_function, params={}):
   """
 
   params["input_reader"] = {"entity_kind": entity_kind}
+  params["output_writer"] = {"bucket_name": "some-bucket"}
 
   # Run Mapreduce
   p = mapreduce_pipeline.MapperPipeline(
     "Datastore Mapper",
     mapper_function,
     input_readers.__name__ + ".DatastoreInputReader",
-    output_writer_spec="mapreduce.output_writers.BlobstoreRecordsOutputWriter",
+    output_writer_spec="mapreduce.output_writers.GoogleCloudStorageRecordOutputWriter",
     params=params,
     shards=10)
   p.start()
@@ -45,7 +47,7 @@ def _run_pipeline(taskqueue, entity_kind, mapper_function, params={}):
   p = mapreduce_pipeline.MapperPipeline.from_id(p.pipeline_id)
   output_data = []
   for output_file in p.outputs.default.value:
-    with files.open(output_file, "r") as f:
+    with gcs.open(output_file, "r") as f:
       for record in records.RecordsReader(f):
         output_data.append(record)
 
