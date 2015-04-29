@@ -4,11 +4,21 @@ Basice value modifier classes
 Implements Basic format and logic modifiers
 """
 import logging
+import calendar
 import datetime
+from babel.dates import (
+  format_date,
+  format_datetime
+)
+from pytz import timezone
 import re
 from . import FieldModifier
 from math import ceil, floor
 from py_expression_eval import Parser
+from ..utils import posix2LDML
+from google.appengine.ext import ndb
+from google.appengine.datastore import datastore_query
+from google.net.proto.ProtocolBuffer import ProtocolBufferDecodeError
 
 
 class DateFormatModifier(FieldModifier):
@@ -43,13 +53,38 @@ class DateFormatModifier(FieldModifier):
         "%j": 'Day of the year as a zero-padded decimal number',
         "%W": 'Week number of the year (Monday as first day of week) as decimal number'
       }
+    },
+    "locale": {
+      "name": "Locale",
+      "description": "Locale for month, day names, ie 'es_CO'",
+      "type": basestring
+    },
+    "timezone": {
+      "name": "Time Zone",
+      "description": "time zone if output should be different from UTC. ie. 'Europe/London'",
+      "type": basestring
     }
   }
 
+  def _from_strftime(self, date_format):
+      fn = getattr(self.get_operand('value'), 'strftime')
+      return fn(date_format)
+
   def _evaluate(self):
     date_format = self.get_argument('date_format')
-    f = getattr(self.get_operand('value'), 'strftime')
-    return f(date_format)
+    if date_format in ('%s', '%w'):  # not in LDML
+      return self._from_strftime(date_format)
+
+    ldml_format = posix2LDML(date_format)  # compat with babel
+
+    locale = self.get_argument('locale', 'en_US')
+    value = self.get_operand('value')
+    if isinstance(value, datetime.datetime):
+      tzinfo = timezone(self.get_argument('timezone', 'UTC'))
+      return format_datetime(value, format=ldml_format, tzinfo=tzinfo, locale=locale)
+
+    elif isinstance(value, datetime.date):
+      return format_date(value, format=ldml_format, locale=locale)
 
   def guess_return_type(self):
     date_format = self.get_argument('date_format')
@@ -59,6 +94,28 @@ class DateFormatModifier(FieldModifier):
       return basestring.__name__
     elif date_format in ('%Y', '%m', '%W', '%w', '%j'):
       return int.__name__
+
+
+class DaysInMonthModifier(FieldModifier):
+  """ Obtains the number of days for the month in given date/datetime """
+
+  META_NAME = 'Days in month'
+  META_DESCRIPTION = 'Obtains the number of days in a month'
+  META_OPERANDS = {
+    "value": {
+      "name": "Date object",
+      "description": "Number of days in month will be obtained from the object",
+      "valid_types": [datetime.date, datetime.datetime]
+    }
+  }
+  META_ARGS = {}
+
+  def _evaluate(self):
+    obj = self.get_operand('value')
+    year = int(obj.strftime("%Y"))
+    month = int(obj.strftime("%m"))
+    cal_out = calendar.monthrange(year, month)
+    return cal_out[1]
 
 
 class CoerceToDateModifier(FieldModifier):
@@ -404,8 +461,8 @@ class BooleanLogicModifier(FieldModifier):
       "description": "Logical operation to be performed on operands x & y",
       "type": basestring,
       "options": {
-        "AND" : "Boolean AND",
-        "OR" : "Boolean OR"
+        "AND": "Boolean AND",
+        "OR": "Boolean OR"
       }
     },
     "true_value": {
@@ -516,8 +573,6 @@ class ArithmeticModifier(FieldModifier):
   def _evaluate(self):
     expression = str(self.get_argument('expression'))
     operands = self.get_operands()
-    #logging.warn(u"Expression:{}".format(expression))
-    #logging.warn(u"Operands:{}".format(operands))
     parser = Parser()
     try:
       return parser.parse(expression).evaluate(operands)
@@ -528,6 +583,111 @@ class ArithmeticModifier(FieldModifier):
       msg = "Zero division for expression {} with operands {}"
       logging.warn(msg.format(expression, operands))
       return float('NaN')
+    except Exception as e:
+      msg = u"PyExpression error: {} for expression '{}' with opers: {}"
+      logging.warn(msg.format(e, expression, operands))
+      raise
 
   def guess_return_type(self):
     return float.__name__
+
+
+class NdbKeyIdModifier(FieldModifier):
+  """ Executes id() on ndb.Key properties """
+
+  META_NAME = "Resolve ID from NDB Key object"
+  META_DESCRIPTION = "Evaluates id() function on NDB.Key objects"
+  META_OPERANDS = dict()
+  META_ARGS = {}
+  META_OPERANDS = {
+    "value": {
+      "name": "Property name",
+      "description": "id() method will be run on provided attribute",
+      "valid_types": [ndb.Key]
+    }
+  }
+
+  def _evaluate(self):
+    val = self.get_operand('value')
+    if isinstance(val, ndb.Key):
+      return val.id()
+    else:
+      try:
+        key = ndb.Key(urlsafe=val)
+        return key.id()
+      except ProtocolBufferDecodeError:
+        return None
+
+  def guess_return_type(self):
+    return long.__name__
+
+
+class NdbQueryModifier(FieldModifier):
+  """ Executes an ndb.Query() with given params """
+
+  META_NAME = "Query Modifier"
+  META_DESCRIPTION = "Evaluates an ndb.Query()"
+  META_OPERANDS = dict()
+  META_ARGS = {
+    "namespace": {
+      "name": "Namespace",
+      "description": "Namespace over which query will be executed",
+      "valid_types": [basestring]
+    },
+    "kind": {
+      "name": "Kind",
+      "description": "Entity Kind to query",
+      "valid_types": [basestring]
+    },
+    "filters": {
+      "name": "Filters",
+      "description": "Filters to apply to query",
+      "valid_types": [list]
+    },
+    "orders": {
+      "name": "Order clauses",
+      "description": "Order clauses to apply to query",
+      "valid_types": [list]
+    }
+  }
+
+  def _evaluate(self):
+    namespace = self.get_argument('namespace')
+    kind = self.get_argument('kind')
+    raw_filters = self.get_argument('filters')
+    raw_orders = self.get_argument('orders')
+
+    if raw_filters:
+      nodes = list()
+      for f in raw_filters:
+        try:
+          fval = self.get_operand(f[2])
+        except (NameError, KeyError):
+          # user provided value if not resolved from operands
+          fval = f[2]
+        finally:
+          nodes.append(ndb.query.FilterNode(f[0], f[1], fval))
+          filters = ndb.query.ConjunctionNode(*nodes)
+    else:
+      filters = None
+
+    if raw_orders:
+      nodes = list()
+      for o in raw_orders:
+        if len(o) == 1:
+          direc = datastore_query.PropertyOrder.ASCENDING
+        elif o[1] == "ASC":
+          direc = datastore_query.PropertyOrder.ASCENDING
+        elif o[1] == "DESC":
+          direc = datastore_query.PropertyOrder.DESCENDING
+
+        nodes.append(datastore_query.PropertyOrder(o[0], direc))
+      orders = datastore_query.CompositeOrder(nodes)
+    else:
+      orders = None
+
+    q = ndb.Query(kind=kind, filters=filters, namespace=namespace, orders=orders)
+    return q.get().to_dict()
+
+  def guess_return_type(self):
+    dict.__name__

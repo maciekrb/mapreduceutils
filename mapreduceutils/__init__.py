@@ -41,6 +41,10 @@ class MapperRecord(object):
 
   def __init__(self, input_obj):
     self._data = input_obj
+    self._defaults = dict()
+
+  def set_defaults(self, defaults=None):
+    self._defaults = {} if defaults is None else defaults
 
   @classmethod
   def create(cls, input_obj):
@@ -161,7 +165,7 @@ class MapperRecord(object):
 
     return True
 
-  def pick_properties(self, property_list, defaults=None):
+  def pick_properties(self, property_list):
     """
     Resolves the defined property list from the record
 
@@ -185,18 +189,14 @@ class MapperRecord(object):
     If a property from property_list does not exist, a None type is added
     instead so column structure is maintained.
 
-    If defaults dict is defined, de provided value is used instead of None
-
     Returns:
       Ordered Dictionary containing property_list items
     """
-    if defaults is None:
-      defaults = dict()
 
     obj = OrderedDict()
     for k in property_list:
       if isinstance(k, basestring):
-        obj[k] = getattr(self, k, defaults.get(k))
+        obj[k] = getattr(self, k)
       elif isinstance(k, list):  # List of Modifier definitions
         modifier_chain = copy(obj)  # copy previously resolved attrs
         for mod_def in k:
@@ -274,6 +274,7 @@ class MapperRecord(object):
 class GAE_DBRecord(MapperRecord):
   def __init__(self, input_obj):
     self._data = input_obj
+    self._defaults = dict()
     self._key = ndb.Key.from_old_key(self._data.key())
     self._key_pairs = self._key.pairs()
 
@@ -289,7 +290,7 @@ class GAE_DBRecord(MapperRecord):
     elif hasattr(obj, name) and callable(getattr(obj, name)):
       value = ndb.Key.from_old_key(getattr(obj, name)())
     else:
-      value = getattr(obj, name)
+      value = getattr(obj, name, self._defaults.get(name))
 
     if isinstance(value, ndb.Key):
       value = value.urlsafe()
@@ -300,11 +301,12 @@ class GAE_DBRecord(MapperRecord):
 class GAE_NDBRecord(MapperRecord):
   def __init__(self, input_obj):
     self._data = input_obj
+    self._defaults = dict()
     self._key = input_obj.key
     self._key_pairs = input_obj.key.pairs()
 
   def _resolve_value(self, obj, name):
-    value = getattr(obj, name, None)
+    value = getattr(obj, name, self._defaults.get(name))
     if isinstance(value, ndb.Key):
       value = value.urlsafe()
 
@@ -318,6 +320,7 @@ class DictRecord(MapperRecord):
       raise ValueError(msg.format(type(input_obj)))
 
     self._data = input_obj
+    self._defaults = dict()
     self._key = input_obj['_key'] if '_key' in input_obj else None
     self._key_pairs = self._key.pairs() if self._key else None
 
@@ -325,8 +328,7 @@ class DictRecord(MapperRecord):
 
     if name == 'key':
       name = '_key'
-
-    value = obj.get(name, None)
+    value = obj.get(name, self._defaults.get(name))
     if isinstance(value, ndb.Key):
       value = value.urlsafe()
 
@@ -368,7 +370,8 @@ def record_map(data_record):
         key_filters=map_rule.get("key_filters")
       ):
       try:
-        row = record.pick_properties(map_rule["property_list"], map_rule.get('defaults'))
+        record.set_defaults(map_rule.get('defaults'))
+        row = record.pick_properties(map_rule["property_list"])
         if any(row.values()):
           writer = OutputWriter.get_writer(output_format)
           if 'mapper_key_spec' in map_rule:

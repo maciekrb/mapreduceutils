@@ -9,6 +9,30 @@ __all__ = [
   "parse_model_path"
 ]
 
+_PosixToLDMLMap = {
+  '%a': 'EEE',   # day: Tue
+  '%A': 'EEEE',  # day: Tuesday
+  # '%w':     # week day as decimal number: 0 Sun, 6 Sat
+  '%d': 'dd',    # day: 03
+  '%b': 'MMM',   # month: Sept
+  '%B': 'MMMM',  # month: September
+  '%m': 'MM',    # month: 09
+  '%y': 'yy',    # year: 85
+  '%Y': 'y',     # year: 1985
+  '%H': 'HH',    # 24-hour: 04
+  '%I': 'hh',    # 12-hour: 04
+  '%p': 'a',     # AM or PM: AM
+  '%M': 'mm',    # minute: 09
+  '%S': 'ss',    # second: 06
+  # %f microseconds ??
+  '%z': 'Z',     # timezone: -0400
+  '%Z': 'z',     # timezone: UTC, EST
+  '%j': 'D',     # day: 001, 246
+  '%U': 'ww',    # Week number of year, week starts Sun @TODO fixme
+  '%W': 'ww',    # Week number of year, week starts Mon @TODO fixme
+  '%e': 'd'      # day: 3
+}
+
 
 def for_name(fq_name, recursive=False):
   """Find class/function/method specified by its fully qualified name.
@@ -121,3 +145,27 @@ def parse_model_path(path):
     raise ValueError("Path should be a list of tuples (Model, id/name): {}".format(path))
 
   return rule
+
+"""
+ Simplified datetime format string converter from LDML (Locale Data Markup
+ Language) aka CLDR (Unicode Common Locale Data Repository) format to POSIX
+ aka strftime format.
+
+ Main usecase is using complete localization from CLDR with D3, which
+ implements POSIX style of date formatting.
+
+ References:
+  - http://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table
+  - http://pubs.opengroup.org/onlinepubs/007908799/xsh/strftime.html
+  - https://github.com/mbostock/d3/wiki/Time-Formatting#format
+  - https://gist.github.com/saaj/0d6bb9b70964a1313cf5
+
+ @license LGPLv2.1+
+ @author maciekrb
+"""
+
+
+def posix2LDML(date_fmt):
+  for needle, rplcmt in _PosixToLDMLMap.items():
+    date_fmt = date_fmt.replace(needle, rplcmt)
+  return date_fmt

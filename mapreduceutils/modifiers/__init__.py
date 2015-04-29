@@ -48,7 +48,7 @@ class FieldModifier(object):
     return {opname: self.get_operand(opname) for opname in
             self.operands.keys()}
 
-  def eval(self, record, modifier_chain):
+  def eval(self, record, modifier_chain, defaults={}):
     """
     Evaluates the modifier
 
@@ -71,7 +71,15 @@ class FieldModifier(object):
     Returns:
       value assigned by the FieldModifier
     """
-    return self.modifier_chain[identifier]
+    parts = identifier.split('.')
+    if len(parts) == 1:
+      return self.modifier_chain[identifier]
+    else:
+      chain_item = self.modifier_chain[parts[0]]
+      if isinstance(chain_item, dict):
+        return chain_item.get(parts[1])
+      else:
+        return getattr(chain_item, parts[1])
 
   def to_dict(self):
     """
@@ -133,10 +141,10 @@ class FieldModifier(object):
     Returns:
       An instance of the concrete FileModifier i.e DateModifier
     """
-
-    if 'method' not in definition:
+    method = definition.get('method')
+    if method is None:
       # support property rename when no method is defined
-      definition['method'] = __name__ + ".BypassModifier"
+      method = __name__ + ".BypassModifier"
 
     args = {
       'identifier': definition['identifier'],
@@ -144,10 +152,7 @@ class FieldModifier(object):
       'operands': definition.get('operands')
     }
     # @TODO: cache this
-    obj = cls.from_qualified_name(
-      definition['method'],
-      constructor_args=args
-    )
+    obj = cls.from_qualified_name(method, constructor_args=args)
     return obj
 
   def guess_return_type(self):

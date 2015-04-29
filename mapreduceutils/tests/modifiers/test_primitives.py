@@ -1,9 +1,19 @@
 import unittest
 import datetime
 from mapreduceutils.modifiers import primitives
+from google.appengine.ext import ndb
+from google.appengine.ext import testbed
+from mapreduceutils.utils import posix2LDML
+from pytz import utc
+
 
 class Record(object):
   pass
+
+
+class NdbRecord(ndb.Model):
+  abc = ndb.StringProperty()
+  bcd = ndb.IntegerProperty()
 
 
 class TestDateFormatModifier(unittest.TestCase):
@@ -27,7 +37,7 @@ class TestDateFormatModifier(unittest.TestCase):
 
     chain = {}
     record = Record()
-    record.created_time = datetime.datetime(2010, 10, 3, 13, 20, 23, 5432)
+    record.created_time = datetime.datetime(2010, 1, 10, 13, 20, 23, 5432)
 
     # Test to Year
     modifier = primitives.DateFormatModifier(
@@ -45,7 +55,7 @@ class TestDateFormatModifier(unittest.TestCase):
         arguments={"date_format": "%m"}
     )
     modifier.eval(record, chain)
-    self.assertEqual('10', chain['xxxx001'])
+    self.assertEqual('01', chain['xxxx001'])
 
     # Test to Day
     modifier = primitives.DateFormatModifier(
@@ -54,7 +64,7 @@ class TestDateFormatModifier(unittest.TestCase):
         arguments={"date_format": "%d"}
     )
     modifier.eval(record, chain)
-    self.assertEqual('03', chain['xxxx001'])
+    self.assertEqual('10', chain['xxxx001'])
 
     # Test to Weekday
     modifier = primitives.DateFormatModifier(
@@ -63,7 +73,7 @@ class TestDateFormatModifier(unittest.TestCase):
         arguments={"date_format": "%w"}
     )
     modifier.eval(record, chain)
-    self.assertEqual('0', chain['xxxx001'])
+    self.assertEqual('0', chain['xxxx001'])  # Sun
 
     # Test to Year-Month-Day
     modifier = primitives.DateFormatModifier(
@@ -72,7 +82,50 @@ class TestDateFormatModifier(unittest.TestCase):
         arguments={"date_format": "%Y-%m-%d"}
     )
     modifier.eval(record, chain)
-    self.assertEqual('2010-10-03', chain['xxxx001'])
+    self.assertEqual('2010-01-10', chain['xxxx001'])
+
+    # Test to Month name
+    modifier = primitives.DateFormatModifier(
+        identifier='xxxx001',
+        operands={"value": "model.created_time"},
+        arguments={"date_format": "%b"}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual('Jan', chain['xxxx001'])
+
+  def test_datetime_tz_conversion(self):
+    """ DateFormatModifier returns consistent values with timezone arg """
+
+    chain = {}
+    record = Record()
+    record.created_time = datetime.datetime(2010, 1, 10, 0, 0, 10, 10, tzinfo=utc)
+
+    # Test to Year
+    modifier = primitives.DateFormatModifier(
+        identifier='xxxx001',
+        operands={"value": "model.created_time"},
+        arguments={"date_format": "%Y-%m-%d",
+                   "timezone": "America/Bogota"}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual('2010-01-09', chain['xxxx001'])
+
+  def test_datetime_locale_conversion(self):
+    """ DateFormatModifier returns consistent values with locale arg """
+
+    chain = {}
+    record = Record()
+    record.created_time = datetime.datetime(2010, 1, 10, 0, 0, 10, 10, tzinfo=utc)
+
+    # Test to Year
+    modifier = primitives.DateFormatModifier(
+        identifier='xxxx001',
+        operands={"value": "model.created_time"},
+        arguments={"date_format": "%a, %A, %b, %B",
+                   "locale": "es_CO"}
+    )
+    modifier.eval(record, chain)
+    self.assertEqual('dom, domingo, ene, enero', chain['xxxx001'])
 
   def test_date_conversion(self):
     """ DateFormatModifier returns consistent values with
@@ -80,7 +133,7 @@ class TestDateFormatModifier(unittest.TestCase):
 
     chain = {}
     record = Record()
-    record.created_time = datetime.date(2010, 10, 3)
+    record.created_time = datetime.date(2010, 10, 4)
 
     # Test to Year
     modifier = primitives.DateFormatModifier(
@@ -107,7 +160,7 @@ class TestDateFormatModifier(unittest.TestCase):
         arguments={"date_format": "%d"}
     )
     modifier.eval(record, chain)
-    self.assertEqual('03', chain['xxxx001'])
+    self.assertEqual('04', chain['xxxx001'])
 
     # Test to Weekday
     modifier = primitives.DateFormatModifier(
@@ -116,7 +169,7 @@ class TestDateFormatModifier(unittest.TestCase):
         arguments={"date_format": "%w"}
     )
     modifier.eval(record, chain)
-    self.assertEqual('0', chain['xxxx001'])
+    self.assertEqual('1', chain['xxxx001'])  # Mon
 
     # Test to Year-Month-Day
     modifier = primitives.DateFormatModifier(
@@ -125,7 +178,7 @@ class TestDateFormatModifier(unittest.TestCase):
         arguments={"date_format": "%Y-%m-%d"}
     )
     modifier.eval(record, chain)
-    self.assertEqual('2010-10-03', chain['xxxx001'])
+    self.assertEqual('2010-10-04', chain['xxxx001'])
 
   def test_date_return_guess(self):
     """ DateFormatModifier guesses consistent return values """
@@ -169,6 +222,22 @@ class TestDateFormatModifier(unittest.TestCase):
     type_name = modifier.guess_return_type()
     self.assertEqual('basestring', type_name)
 
+
+class TestDaysInMonthModifier(unittest.TestCase):
+
+  def test_consitent_day_count(self):
+    """ DaysInMonthModifier resolves num days consistently"""
+
+    chain = {}
+    record = Record()
+    record.created_time = datetime.date(2015, 1, 4)
+
+    modifier = primitives.DaysInMonthModifier(
+        identifier='xxxx001',
+        operands={"value": "model.created_time"},
+    )
+    modifier.eval(record, chain)
+    self.assertEqual(31, chain['xxxx001'])
 
 
 class TestCoerceToDateModifier(unittest.TestCase):
@@ -642,6 +711,7 @@ class TestBooleanLogicModifier(unittest.TestCase):
     modifier.eval(record, chain)
     self.assertEqual('BCD', chain['xxxx001'])
 
+
 class TestTextMatchModifier(unittest.TestCase):
     def test_startswith_match(self):
       """ TextMatchModifier startswith matches OK """
@@ -949,6 +1019,195 @@ class TestArithmeticModifier(unittest.TestCase):
     modifier.eval(record, chain)
     self.assertEqual(18.8, chain['xxx0001'])
 
+
+class TestNdbKeyIdModifier(unittest.TestCase):
+
+  def test_id_operation(self):
+    """ NdbKeyId modifier resolves consitent key ids """
+
+    chain = {}
+    record = Record()
+    record.value_a = ndb.Key('Record', 23)
+    record.value_b = 4
+    record.value_c = 1.0
+
+    """ from ndb.Key type """
+    modifier = primitives.NdbKeyIdModifier(
+      identifier="xxx0001",
+      operands={"value": "model.value_a"},
+    )
+    modifier.eval(record, chain)
+    self.assertEqual(23, chain['xxx0001'])
+
+    """ from serialized key """
+    record.value_a = ndb.Key('Record', 23).urlsafe()
+    modifier = primitives.NdbKeyIdModifier(
+      identifier="xxx0001",
+      operands={"value": "model.value_a"},
+    )
+    modifier.eval(record, chain)
+    self.assertEqual(23, chain['xxx0001'])
+
+
+class TestPosixToLDML(unittest.TestCase):
+  def test_common_date_formats(self):
+    self.assertEqual(posix2LDML('%A, %B %e, %Y'), 'EEEE, MMMM d, y')
+    self.assertEqual(posix2LDML('%B %e, %Y'), 'MMMM d, y')
+    self.assertEqual(posix2LDML('%B %m, %Y'), 'MMMM MM, y')
+    self.assertEqual(posix2LDML('%b %e, %Y'), 'MMM d, y')
+    self.assertEqual(posix2LDML('%b %m, %Y'), 'MMM MM, y')
+    self.assertEqual(posix2LDML('%m/%e/%y'), 'MM/d/yy')
+
+  def test_common_time_formats(self):
+    self.assertEqual(posix2LDML('%I:%M:%S %p %Z'), 'hh:mm:ss a z')
+    self.assertEqual(posix2LDML('%I:%M:%S %p %Z'), 'hh:mm:ss a z')
+    self.assertEqual(posix2LDML('%I:%M:%S %p'), 'hh:mm:ss a')
+    self.assertEqual(posix2LDML('%I:%M %p'), 'hh:mm a')
+
+
+class TestNdbQueryModifier(unittest.TestCase):
+  def setUp(self):
+    self.testbed = testbed.Testbed()
+    self.testbed.activate()
+    self.testbed.init_datastore_v3_stub()
+    self.testbed.init_memcache_stub()
+
+  def tearDown(self):
+    self.testbed.deactivate()
+
+  def test_simple_query(self):
+    """ NdbQueryModifier resolves with filters consistently """
+
+    rec1 = NdbRecord(
+      key=ndb.Key("NdbRecord", 1, namespace="testapp"),
+      abc="Hello World1",
+      bcd=1
+    )
+    rec2 = NdbRecord(
+      key=ndb.Key("NdbRecord", 2, namespace="testapp"),
+      abc="Hello World2",
+      bcd=2
+    )
+    ndb.put_multi((rec1, rec2))
+
+    chain = {}
+    record = Record()
+    record.search = 1
+    modifier = primitives.NdbQueryModifier(
+      identifier='xxxx001',
+      arguments={
+        "namespace": "testapp",
+        "kind": "NdbRecord",
+        "filters": [
+          ("bcd", "=", 1)
+        ]
+      },
+      operands={
+        "val": "model.search"
+      }
+    )
+    modifier.eval(record, chain)
+    self.assertIsInstance(chain['xxxx001'], dict)
+    self.assertEqual(rec1.to_dict(), chain['xxxx001'])
+
+  def test_ordered_query(self):
+    """ NdbQueryModifier resolves ordered queries consistently """
+
+    rec1 = NdbRecord(
+      key=ndb.Key("NdbRecord", 1, namespace="testapp"),
+      abc="Hello World1",
+      bcd=1
+    )
+    rec2 = NdbRecord(
+      key=ndb.Key("NdbRecord", 2, namespace="testapp"),
+      abc="Hello World2",
+      bcd=2
+    )
+    rec3 = NdbRecord(
+      key=ndb.Key("NdbRecord", 3, namespace="testapp"),
+      abc="Hello World3",
+      bcd=1
+    )
+    ndb.put_multi((rec1, rec2, rec3))
+
+    chain = {}
+    record = Record()
+    record.search = 1
+    modifier = primitives.NdbQueryModifier(
+      identifier='xxxx001',
+      arguments={
+        "namespace": "testapp",
+        "kind": "NdbRecord",
+        "filters": [
+          ("bcd", "=", 1)
+        ],
+        "orders": [
+          ("abc", "DESC")
+        ]
+      },
+      operands={
+        "val": "model.search"
+      }
+    )
+    modifier.eval(record, chain)
+    self.assertIsInstance(chain['xxxx001'], dict)
+    self.assertEqual(rec3.to_dict(), chain['xxxx001'])
+
+
+class TestNdbQueryChaining(unittest.TestCase):
+  def setUp(self):
+    self.testbed = testbed.Testbed()
+    self.testbed.activate()
+    self.testbed.init_datastore_v3_stub()
+    self.testbed.init_memcache_stub()
+
+  def tearDown(self):
+    self.testbed.deactivate()
+
+  def test_query_results_accesible_from_chain(self):
+    """ """
+    rec1 = NdbRecord(
+      key=ndb.Key("NdbRecord", 1, namespace="testapp"),
+      abc="Hello World1",
+      bcd=1
+    )
+    rec2 = NdbRecord(
+      key=ndb.Key("NdbRecord", 2, namespace="testapp"),
+      abc="Hello World2",
+      bcd=2
+    )
+    ndb.put_multi((rec1, rec2))
+
+    chain = {}
+    record = Record()
+    record.search = 1
+    query_modifier = primitives.NdbQueryModifier(
+      identifier='xxxx001',
+      arguments={
+        "namespace": "testapp",
+        "kind": "NdbRecord",
+        "filters": [
+          ("bcd", "=", 1)
+        ]
+      },
+      operands={
+        "val": "model.search"
+      }
+    )
+    query_modifier.eval(record, chain)
+    self.assertIsInstance(chain['xxxx001'], dict)
+    self.assertEqual(rec1.to_dict(), chain['xxxx001'])
+
+    # Execute other modifier
+    arithmetic_modifier = primitives.ArithmeticModifier(
+      identifier="xxx0002",
+      operands={"x": "model.search", "y": "identifier.xxxx001.bcd"},
+      arguments={"expression": "x + y"}
+    )
+    arithmetic_modifier.eval(record, chain)
+    self.assertEqual(chain['xxx0002'], 2)
+
+
 if __name__ == '__main__':
   suite = unittest.TestSuite()
   suite.addTest(unittest.makeSuite(TestDateFormatModifier))
@@ -960,4 +1219,5 @@ if __name__ == '__main__':
   suite.addTest(unittest.makeSuite(TestBooleanLogicModifier))
   suite.addTest(unittest.makeSuite(TestTextMatchModifier))
   suite.addTest(unittest.makeSuite(TestArithmeticModifier))
+  suite.addTest(unittest.makeSuite(TestNdbKeyIdModifier))
   unittest.TextTestRunner(verbosity=2).run(suite)

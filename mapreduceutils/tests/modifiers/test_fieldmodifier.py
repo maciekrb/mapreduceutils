@@ -80,7 +80,7 @@ class DummyModel(object):
 class TestFieldModifier(unittest.TestCase):
 
   def test_metadata_definition(self):
-    """ FieldModifier Class metadata correctly defined """
+    """ FieldModifier metadata correctly defined """
 
     self.assertEqual(DummyFieldModifier.META_NAME, "Test Name")
     self.assertEqual(DummyFieldModifier.META_DESCRIPTION, "Test Description")
@@ -135,7 +135,7 @@ class TestFieldModifier(unittest.TestCase):
     self.assertEqual(definition, mod.to_dict())
 
   def test_modifier_return_value(self):
-    """ FieldModifier class returns expected values """
+    """ FieldModifier returns expected values """
 
     chain = {}
     record = DummyModel()
