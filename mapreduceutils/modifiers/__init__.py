@@ -37,7 +37,7 @@ class FieldModifier(object):
 
       prefix, attr_name = self.operands[name].split('.', 1)
       if prefix == 'model':
-        return getattr(self.record, attr_name)
+        return getattr(self.record, attr_name, None)
       elif prefix == 'identifier':
         return self.get_value_from_chain(attr_name)
 
