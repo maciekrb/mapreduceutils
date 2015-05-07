@@ -5,7 +5,6 @@ Model rule matching and resolution implementation
 Implementation of classes which set rules, define properties or transformations to
 be generated over db.Model ndb.Model objects
 """
-from google.appengine.ext import db, ndb
 from collections import OrderedDict
 from utils import parse_model_path
 
