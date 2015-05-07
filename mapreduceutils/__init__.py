@@ -326,8 +326,14 @@ class DictRecord(MapperRecord):
 
   def _resolve_value(self, obj, name):
 
+    if not isinstance(obj, dict):
+      msg = "DictRecord expects dict, {} received: '{}'"
+      logging.warn(msg.format(type(obj), obj))
+      return None
+
     if name == 'key':
       name = '_key'
+
     value = obj.get(name, self._defaults.get(name))
     if isinstance(value, ndb.Key):
       value = value.urlsafe()

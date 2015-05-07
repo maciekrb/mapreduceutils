@@ -94,6 +94,8 @@ class DateFormatModifier(FieldModifier):
       return basestring.__name__
     elif date_format in ('%Y', '%m', '%W', '%w', '%j'):
       return int.__name__
+    else:
+      raise ValueError("Could not guess type for '{}'".format(date_format))
 
 
 class DaysInMonthModifier(FieldModifier):
@@ -115,7 +117,10 @@ class DaysInMonthModifier(FieldModifier):
     year = int(obj.strftime("%Y"))
     month = int(obj.strftime("%m"))
     cal_out = calendar.monthrange(year, month)
-    return cal_out[1]
+    return int(cal_out[1])
+
+  def guess_return_type(self):
+    return int.__name__
 
 
 class CoerceToDateModifier(FieldModifier):
@@ -615,7 +620,9 @@ class NdbKeyIdModifier(FieldModifier):
       try:
         key = ndb.Key(urlsafe=val)
         return key.id()
-      except ProtocolBufferDecodeError:
+      except (TypeError, ProtocolBufferDecodeError):
+        msg = "Trying to init ndb.Key from urlsafe string: '{}'"
+        logging.warn(msg.format(val))
         return None
 
   def guess_return_type(self):
@@ -651,6 +658,15 @@ class NdbQueryModifier(FieldModifier):
     }
   }
 
+  def _decode_key(self, key):
+    if not isinstance(key, ndb.Key):
+      try:
+        key = ndb.Key(urlsafe=key)
+        return key
+      except (TypeError, ProtocolBufferDecodeError):
+        pass
+    return key
+
   def _evaluate(self):
     namespace = self.get_argument('namespace')
     kind = self.get_argument('kind')
@@ -661,7 +677,8 @@ class NdbQueryModifier(FieldModifier):
       nodes = list()
       for f in raw_filters:
         try:
-          fval = self.get_operand(f[2])
+          # attempt to decode a key
+          fval = self._decode_key(self.get_operand(f[2]))
         except (NameError, KeyError):
           # user provided value if not resolved from operands
           fval = f[2]
@@ -687,7 +704,11 @@ class NdbQueryModifier(FieldModifier):
       orders = None
 
     q = ndb.Query(kind=kind, filters=filters, namespace=namespace, orders=orders)
-    return q.get().to_dict()
+    entity = q.get()
+    #dbg_msg = u"Query result for {}, {}, {}, {} : {}"
+    #logging.warn(dbg_msg.format(namespace, kind, filters, orders, entity))
+    if entity:
+      return entity.to_dict()
 
   def guess_return_type(self):
     dict.__name__

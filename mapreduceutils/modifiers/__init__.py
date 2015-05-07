@@ -3,7 +3,7 @@ Modifier implementation
 """
 from ..utils import for_name
 
-__all__ = ['FieldModifier', 'primitives']
+__all__ = ['FieldModifier']
 
 
 class FieldModifier(object):
@@ -76,10 +76,11 @@ class FieldModifier(object):
       return self.modifier_chain[identifier]
     else:
       chain_item = self.modifier_chain[parts[0]]
-      if isinstance(chain_item, dict):
-        return chain_item.get(parts[1])
-      else:
-        return getattr(chain_item, parts[1])
+      if chain_item:
+        if isinstance(chain_item, dict):
+          return chain_item.get(parts[1])
+        else:
+          return getattr(chain_item, parts[1])
 
   def to_dict(self):
     """
